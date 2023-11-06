@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Rebus.Bus;
 using Rebus.Logging;
 using Rebus.Messages;
@@ -59,7 +62,7 @@ public static class AsyncClientRedisExtensions
 
     private static async void HandleResponseMessage(RedisChannel channel, RedisValue value)
     {
-        if (_serializer is null) throw new UnreachableException("No serializer has been registered.");
+        if (_serializer is null) throw new /*Unreachable*/Exception("No serializer has been registered.");
         if (value.IsNull) throw new ArgumentNullException(nameof(value), "A null value was received from Redis.");
         var payload = AsyncPayload.FromJson(value!);
 
@@ -83,7 +86,7 @@ public static class AsyncClientRedisExtensions
                 }
                 else
                 {
-                    pendingTask.tcs.SetResult(null);
+                    pendingTask.tcs.SetResult(null!);
                 }
 
                 break;
@@ -144,7 +147,7 @@ public static class AsyncClientRedisExtensions
 
         if (!_messages.TryAdd(messageID, (taskCompletionSource, typeof(TReply))))
         {
-            throw new UnreachableException(
+            throw new /*Unreachable*/Exception(
                 $"Could not add response ID {messageID} to the dictionary of pending messages.");
         }
 
@@ -152,7 +155,7 @@ public static class AsyncClientRedisExtensions
         headers[AsyncHeaders.Timeout] = maxWaitTime.Milliseconds.ToString();
         headers[Headers.MessageId] = string.Concat(
             AsyncHeaders.MessageIDPrefix,
-            _subscriberID ?? throw new UnreachableException("Subscriber ID is null"),
+            _subscriberID ?? throw new /*Unreachable*/Exception("Subscriber ID is null"),
             ":",
             messageID);
 

@@ -1,9 +1,11 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Rebus.Exceptions;
-using Rebus.Pipeline;
 using Rebus.Sagas;
-using Rebus.Transport;
 using StackExchange.Redis;
 
 namespace Rebus.Redis.Sagas;
@@ -90,7 +92,6 @@ internal class RedisSagaStorage : ISagaStorage
         var txn = _redisProvider.GetForScope();
         try
         {
-            var t = MessageContext.Current.TransactionContext;
             txn.InTransaction(t => t.ScriptEvaluateAsync(script.ToString(), keys.ToArray(), values.ToArray()));
         }
         catch (RedisServerException e) when (e.Message.Contains("already-exists"))
@@ -140,7 +141,6 @@ internal class RedisSagaStorage : ISagaStorage
         var txn = _redisProvider.GetForScope();
         try
         {
-            var t = MessageContext.Current.TransactionContext;
             txn.InTransaction(t => t.ScriptEvaluateAsync(script.ToString(), keys.ToArray(), values.ToArray()));
         }
         catch (RedisServerException e) when (e.Message.Contains("revision-mismatch"))

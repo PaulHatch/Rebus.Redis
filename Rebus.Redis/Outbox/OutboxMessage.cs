@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Rebus.Messages;
 using Rebus.Serialization;
 using StackExchange.Redis;

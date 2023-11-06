@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Rebus.Transport;
 
 namespace Rebus.Redis.Outbox;

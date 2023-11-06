@@ -1,3 +1,4 @@
+using System;
 using Rebus.Exceptions;
 using Rebus.Logging;
 using Rebus.Pipeline;
@@ -90,18 +91,21 @@ public static class RedisOutboxConfigurationExtensions
         Action<RedisOutboxConfiguration>? configure = default)
     {
         if (configurer == null) throw new ArgumentNullException(nameof(configurer));
-        var config = new RedisOutboxConfiguration();
-        configure?.Invoke(config);
+        var outboxConfig = new RedisOutboxConfiguration();
+        configure?.Invoke(outboxConfig);
+        configurer.OtherService<RedisOutboxConfiguration>()
+            .Register(_ => outboxConfig);
 
         configurer.OtherService<IOutboxStorage>()
             .Register(r =>
             {
+                var config = r.Get<RedisOutboxConfiguration>();
                 var options = r.Get<Options>();
                 var outboxName = config.OutboxName ??
                                  options.OptionalBusName.AddSuffix() ??
                                  throw new RebusConfigurationException(
                                      "Either an outbox name or a bus name must be specified");
-
+                
                 return new RedisOutboxStorage(
                     outboxName,
                     r.Get<RedisProvider>(),

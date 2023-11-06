@@ -1,8 +1,7 @@
-using Rebus.Config;
+using System;
 using Rebus.Redis;
 using Rebus.Redis.Sagas;
 using Rebus.Sagas;
-using Rebus.Transport;
 
 // ReSharper disable once CheckNamespace
 namespace Rebus.Config;
@@ -14,7 +13,6 @@ public static class SagaConfig
     /// (if you need a saga storage that is pretty fast), it is probably better to use a persistent storage (like SQL Server
     /// or another database), because the state of all sagas will be lost in case the endpoint is restarted.
     /// </summary>
-    /// <param name="redis">The Redis instance to use.</param>
     /// <param name="shardCount">
     /// The number of hash maps to use for storage of correlation ID indexes per sage type, defaults to 1. For
     /// high-volume systems, setting this to a higher number can improve performance of concurrent lookups.

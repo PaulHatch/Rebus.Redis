@@ -1,3 +1,4 @@
+using System.Threading;
 using Rebus.Bus;
 using Rebus.Logging;
 using Rebus.Serialization;

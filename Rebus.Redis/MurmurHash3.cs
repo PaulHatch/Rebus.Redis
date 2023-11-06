@@ -1,6 +1,6 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static System.Numerics.BitOperations;
 
 namespace Rebus.Redis;
 
@@ -66,4 +66,10 @@ internal static class MurmurHash3
         seed = (uint)((seed ^ (seed >> 13)) * -1028477387);
         return seed ^ seed >> 16;
     }
+    
+    // RotateLeft copied from .NET source 
+    // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Numerics/BitOperations.cs
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint RotateLeft(uint value, int offset) => (value << offset) | (value >> (32 - offset));
 }

@@ -1,3 +1,5 @@
+using System;
+
 namespace Rebus.Redis.Async;
 
 /// <summary>

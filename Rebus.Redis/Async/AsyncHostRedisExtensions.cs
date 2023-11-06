@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Rebus.Messages;
 using Rebus.Pipeline;
 using Rebus.Serialization;
@@ -180,7 +183,7 @@ public static class AsyncHostRedisExtensions
         var headerValue = headers[messageIDHeader];
         var subscriberID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length, 36);
         var messageID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length + 37, 36);
-        ;
+        
         return new ReplyContext(subscriberID, messageID);
     }
 }

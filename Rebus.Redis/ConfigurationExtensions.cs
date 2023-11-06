@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using Rebus.Config;
 using Rebus.Logging;
 using Rebus.Pipeline;
@@ -24,15 +28,14 @@ public static class ConfigurationExtensions
         (configure ?? DefaultConfig).Invoke(config);
 
         var redis = ConnectionMultiplexer.Connect(connectionString);
-        configurer.Register<IConnectionMultiplexer>(r => redis, "redis");
+        configurer.Register<IConnectionMultiplexer>(_ => redis, "redis");
         configurer.Register<RedisProvider>(r => 
             new RedisProvider(r.Get<IConnectionMultiplexer>()), "Connection Provider");
 
         if (config.HostAsyncEnabled)
         {
-            configurer.Register(c =>
+            configurer.Register(_ =>
             {
-                //var rebusLoggerFactory = c.Get<IRebusLoggerFactory>();
                 var step = new ReplyStepHandler();
                 return step;
             });

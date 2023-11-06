@@ -1,10 +1,27 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <OutputType>Library</OutputType>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>11</LangVersion>
+        <Authors>Paul Hatcherian</Authors>
+        <Description>
+            Provides a Redis driver for Rebus
+        </Description>
+        <PackageDescription>Provides a Redis driver for Rebus</PackageDescription>
+        <Copyright>Copyright Paul Hatcherian 2023</Copyright>
+        <PackageTags>rebus eventbus redis</PackageTags>
+        <RepositoryUrl>https://github.com/paulhatch/Rebus.Redis</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageIcon>images/icon.png</PackageIcon>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="..\images\icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Rebus" Version="8.0.0-alpha11" />

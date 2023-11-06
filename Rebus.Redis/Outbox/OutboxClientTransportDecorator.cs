@@ -1,6 +1,8 @@
+using System;
 using Rebus.Messages;
 using Rebus.Transport;
-using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Rebus.Redis.Outbox;
 

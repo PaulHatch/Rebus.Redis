@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Rebus.Pipeline;
 using Rebus.Transport;
 
@@ -6,6 +8,9 @@ namespace Rebus.Redis.Outbox;
 /// <summary>
 /// Step to provide a Redis transaction to the current pipeline context
 /// </summary>
+[StepDocumentation(
+    "Adds a new Redis connection with transaction and registers committing it with the current Rebus transaction context."
+)]
 internal class OutboxIncomingStep : IIncomingStep
 {
     private readonly RedisProvider _provider;

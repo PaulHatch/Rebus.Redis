@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Rebus.Messages;
@@ -36,11 +39,13 @@ internal record AsyncPayload
     // Success constructor
     private AsyncPayload(string messageID, TransportMessage message)
     {
-        Headers = new Dictionary<string, string>(message.Headers
-            .Where(h => IncludedHeaders.Contains(h.Key)))
-        {
-            [Rebus.Messages.Headers.MessageId] = messageID
-        };
+        var headers = message.Headers
+            .Where(h => IncludedHeaders.Contains(h.Key))
+            .ToDictionary(i => i.Key, i => i.Value);
+        
+        headers.Add(Rebus.Messages.Headers.MessageId, messageID);
+        
+        Headers = headers;
         Body = Convert.ToBase64String(message.Body);
         ResponseType = ResponseType.Success;
     }

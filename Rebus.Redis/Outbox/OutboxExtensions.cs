@@ -1,5 +1,4 @@
-using Rebus.Config;
-using Rebus.Logging;
+using System;
 using Rebus.Transport;
 using StackExchange.Redis;
 
@@ -9,7 +8,7 @@ public static class OutboxExtensions
 {
     /// <summary>
     /// Enables the use of outbox on the <see cref="RebusTransactionScope"/>. Will enlist all outgoing message operations in the
-    /// <paramref name="connection"/>/<paramref name="transaction"/> passed to the method.
+    /// /<paramref name="transaction"/> passed to the method.
     /// </summary>
     public static void UseOutbox(this RebusTransactionScope rebusTransactionScope, ITransaction transaction)
     {
