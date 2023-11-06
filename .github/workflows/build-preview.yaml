@@ -23,6 +23,13 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
+      - name: Cache NuGet Packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Build Packages
         run: 
           dotnet pack -c Release -p:Version=${VERSION}  -p:PackageVersion=${PACKAGE_VERSION} .          
@@ -46,8 +53,5 @@ jobs:
           name: packages
           path: ./packages
       - name: Publish Preview
-        run: |
-          for f in ./packages/**/*.nupkg
-          do
-            curl -vX PUT -u "PaulHatch:${{ secrets.GITHUB_TOKEN }}" -F package=@$f https://nuget.pkg.github.com/PaulHatch/
-          done
+        run: find . -name '*.nupkg' -exec dotnet nuget push "{}" --source "github" --api-key ${{ secrets.GITHUB_TOKEN }} \;
+        shell: bash
