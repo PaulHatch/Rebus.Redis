@@ -7,6 +7,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      packages: write
     name: Build
     runs-on: ubuntu-latest
     steps:
