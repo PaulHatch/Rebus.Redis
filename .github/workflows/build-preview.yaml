@@ -24,8 +24,8 @@ jobs:
         with:
           dotnet-version: '6.0.x'
       - name: Build Packages
-        run: |
-          dotnet build -c Release -p:Version=${VERSION}  -p:PackageVersion=${PACKAGE_VERSION} .
+        run: 
+          dotnet pack -c Release -p:Version=${VERSION}  -p:PackageVersion=${PACKAGE_VERSION} .          
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
           VERSION: ${{ steps.version.outputs.version }}.${{ steps.version.outputs.increment }}
