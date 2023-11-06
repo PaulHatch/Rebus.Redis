@@ -47,7 +47,7 @@ jobs:
           path: ./packages
       - name: Publish Preview
         run: |
-          for f in *.nupkg
+          for f in ./packages/**/*.nupkg
           do
             curl -vX PUT -u "PaulHatch:${{ secrets.GITHUB_TOKEN }}" -F package=@$f https://nuget.pkg.github.com/PaulHatch/
           done
