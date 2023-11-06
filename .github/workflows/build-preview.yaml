@@ -53,5 +53,7 @@ jobs:
           name: packages
           path: ./packages
       - name: Publish Preview
-        run: find . -name '*.nupkg' -exec dotnet nuget push "{}" --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key ${{ secrets.GITHUB_TOKEN }} \;
+        run: |
+          dotnet nuget add source --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          find . -name '*.nupkg' -exec dotnet nuget push "{}" --source "github" --api-key ${{ secrets.GITHUB_TOKEN }} \;
         shell: bash
