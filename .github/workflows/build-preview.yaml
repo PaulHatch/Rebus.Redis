@@ -34,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v3.1.3
         with:
           name: packages
-          path: /**/*.nupkg
+          path: ./**/*.nupkg
   publish-preview:
     name: Publish Prerelease Packages
     runs-on: ubuntu-latest
