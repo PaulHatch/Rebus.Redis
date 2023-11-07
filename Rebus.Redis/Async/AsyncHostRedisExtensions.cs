@@ -13,13 +13,26 @@ namespace Rebus.Redis.Async;
 /// </summary>
 public static class AsyncHostRedisExtensions
 {
-    private static IConnectionMultiplexer? _redis;
+    private static IConnectionMultiplexer? _connection;
     private static ISerializer? _serializer;
+    private static IReadOnlyDictionary<string, IConnectionMultiplexer>? _additionalConnections;
 
-    internal static void RegisterPublisher(IConnectionMultiplexer redis, ISerializer serializer)
+    internal static void RegisterPublisher(
+        IConnectionMultiplexer connection,
+        ISerializer serializer,
+        IReadOnlyDictionary<string, IConnectionMultiplexer> additionalConnections)
     {
-        _redis = redis;
+        _connection = connection;
         _serializer = serializer;
+        _additionalConnections = additionalConnections;
+    }
+
+    private static IDatabaseAsync GetDatabase(string address)
+    {
+        var connection  = _additionalConnections?.ContainsKey(address) == true ?
+            _additionalConnections[address] : _connection;
+        
+        return connection?.GetDatabase() ?? throw new InvalidOperationException("Redis host support has not been initialized");
     }
 
     /// <summary>
@@ -76,8 +89,7 @@ public static class AsyncHostRedisExtensions
         };
         var payload = AsyncPayload.Success(context.MessageID, message);
 
-        var db = _redis?.GetDatabase() ??
-                 throw new InvalidOperationException("Redis host support has not been initialized");
+        var db = GetDatabase(context.SenderAddress);
         await db.PublishAsync(RedisChannel.Literal(context.SubscriberID), payload.ToJson());
     }
 
@@ -89,8 +101,7 @@ public static class AsyncHostRedisExtensions
     /// <param name="message">The message for the exception to throw.</param>
     public static async Task RedisFailAsync(this ReplyContext context, string message)
     {
-        var db = _redis?.GetDatabase() ??
-                 throw new InvalidOperationException("Redis host support has not been initialized");
+        var db = GetDatabase(context.SenderAddress);
         var payload = AsyncPayload.Failed(context.MessageID, message);
         await db.PublishAsync(RedisChannel.Literal(context.SubscriberID), payload.ToJson());
     }
@@ -101,8 +112,7 @@ public static class AsyncHostRedisExtensions
     /// <param name="context">Context to reply to.</param>
     public static async Task RedisCancelAsync(this ReplyContext context)
     {
-        var db = _redis?.GetDatabase() ??
-                 throw new InvalidOperationException("Redis host support has not been initialized");
+        var db = GetDatabase(context.SenderAddress);
         var payload = AsyncPayload.Cancelled(context.MessageID);
         await db.PublishAsync(RedisChannel.Literal(context.SubscriberID), payload.ToJson());
     }
@@ -179,11 +189,12 @@ public static class AsyncHostRedisExtensions
         var messageIDHeader = fromReplyTo ? Headers.InReplyTo : Headers.MessageId;
         if (!headers.ContainsKey(messageIDHeader) || !headers[messageIDHeader].StartsWith(AsyncHeaders.MessageIDPrefix))
             return null;
-        
+
         var headerValue = headers[messageIDHeader];
         var subscriberID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length, 36);
         var messageID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length + 37, 36);
-        
-        return new ReplyContext(subscriberID, messageID);
+        var senderAddress = headers[Headers.SenderAddress];
+
+        return new ReplyContext(senderAddress, subscriberID, messageID);
     }
 }

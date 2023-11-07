@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Rebus.Config;
+using Rebus.Exceptions;
 using Rebus.Logging;
 using Rebus.Pipeline;
 using Rebus.Pipeline.Send;
@@ -27,9 +27,17 @@ public static class ConfigurationExtensions
         var config = new RebusRedisConfig();
         (configure ?? DefaultConfig).Invoke(config);
 
-        var redis = ConnectionMultiplexer.Connect(connectionString);
-        configurer.Register<IConnectionMultiplexer>(_ => redis, "redis");
-        configurer.Register<RedisProvider>(r => 
+        try
+        {
+            var redis = ConnectionMultiplexer.Connect(connectionString);
+            configurer.Register<IConnectionMultiplexer>(_ => redis, "redis");
+        }
+        catch (Exception e)
+        {
+            throw new RebusConfigurationException(e, "Could not connect to Redis");
+        }
+
+        configurer.Register<RedisProvider>(r =>
             new RedisProvider(r.Get<IConnectionMultiplexer>()), "Connection Provider");
 
         if (config.HostAsyncEnabled)
@@ -48,8 +56,30 @@ public static class ConfigurationExtensions
                     .OnSend(step, PipelineRelativePosition.Before, typeof(SendOutgoingMessageStep));
             });
 
+
+            var additionalConnections = new Dictionary<string, IConnectionMultiplexer>();
+            foreach (var connection in config.AdditionalConnections)
+            {
+                try
+                {
+                    additionalConnections.Add(connection.Key, ConnectionMultiplexer.Connect(connectionString));
+                }
+                catch (Exception e)
+                {
+                    throw new RebusConfigurationException(e, $"Could not connect to Redis for '{connection.Key}'");
+                }
+            }
+
+            configurer.Register<Dictionary<string, IConnectionMultiplexer>>(
+                _ => additionalConnections,
+                "Additional Redis connections");
+
+
             configurer.Register(r =>
-                    new HostInitializer(r.Get<IConnectionMultiplexer>(), r.Get<ISerializer>()),
+                    new HostInitializer(
+                        r.Get<IConnectionMultiplexer>(),
+                        r.Get<ISerializer>(),
+                        r.Get<Dictionary<string, IConnectionMultiplexer>>()),
                 "Host initializer");
 
             configurer.Decorate<IPipeline>(r =>
@@ -87,34 +117,4 @@ public static class ConfigurationExtensions
     {
         a.EnableAsync();
     }
-}
-
-public class RebusRedisConfig
-{
-    public RebusRedisConfig EnableAsync(bool enableClient = true, bool enableHost = true)
-    {
-        ClientAsyncEnabled = enableClient;
-        HostAsyncEnabled = enableHost;
-        return this;
-    }
-
-    /// <summary>
-    /// Specify additional headers that should be included in the transport message. By default, only the
-    /// type, content type, and content encoding headers are included. Only headers required by the serializer
-    /// are necessary as routing is handled in a separate channel. 
-    /// </summary>
-    /// <param name="headers">Headers to include</param>
-    public RebusRedisConfig IncludeTransportHeader(params string[] headers)
-    {
-        foreach (var header in headers.Distinct())
-        {
-            AdditionalHeaders.Add(header);
-        }
-
-        return this;
-    }
-
-    internal HashSet<string> AdditionalHeaders { get; } = new();
-    internal bool ClientAsyncEnabled { get; private set; }
-    internal bool HostAsyncEnabled { get; private set; }
 }

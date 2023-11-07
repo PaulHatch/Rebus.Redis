@@ -8,23 +8,22 @@ namespace Rebus.Redis.Async;
 /// </summary>
 public class ReplyContext
 {
-    /// <summary>
-    /// Gets the subscriber ID of the recipient.
-    /// </summary>
+    /// <summary>Gets the sender address of the recipient.</summary>
+    public string SenderAddress { get; }
+    
+    /// <summary>Gets the subscriber ID of the recipient.</summary>
     public string SubscriberID { get; }
     
-    /// <summary>
-    /// Gets the response ID of the recipient.
-    /// </summary>
+    /// <summary>Gets the response ID of the recipient.</summary>
     public string MessageID { get; }
 
-    /// <summary>
-    /// Creates a new reply context.
-    /// </summary>
+    /// <summary>Creates a new reply context.</summary>
+    /// <param name="senderAddress">The sender address of the recipient, must not be null.</param>
     /// <param name="subscriberID">The subscriber ID of the recipient, must not be null.</param>
     /// <param name="messageID">The message ID of the recipient, must not be null.</param>
-    public ReplyContext(string subscriberID, string messageID)
+    public ReplyContext(string senderAddress, string subscriberID, string messageID)
     {
+        SenderAddress = senderAddress ?? throw new ArgumentNullException(nameof(senderAddress));
         SubscriberID = subscriberID ?? throw new ArgumentNullException(nameof(subscriberID));
         MessageID = messageID ?? throw new ArgumentNullException(nameof(messageID));
     }

@@ -41,6 +41,48 @@ var response = await bus.SendRequest<ReplyMessage>(request, timeout: TimeSpan.Fr
 var timeout = messageContext.GetReplyTimeout();
 ```
 
+## Async Configuration
+
+To configure async messaging, you need to enable Redis and configure the async messaging. This can be done as follows:
+```csharp
+Configure.With(activationHandler)
+    .Options(o =>
+    {
+        o.SetBusName("main");
+        o.EnableRedis("localhost:6379", r => r.EnableAsync());
+    })
+    // ...
+```
+
+By default, both client and server mode will be active. This means that a listener will be started to listen for replies
+from dispatched requests and that a step handler will be registered to redirect replies sent from a Redis request to the
+Redis publish channel. If you only want to use async messaging in one direction, you can disable the other mode as follows:
+```csharp
+Configure.With(activationHandler)
+    .Options(o =>
+    {
+        o.SetBusName("main");
+        o.EnableRedis("localhost:6379", r => r.EnableAsync(AsyncMode.Client)); // or AsyncMode.Host
+    })
+    // ...
+```
+
+Typically only one service would use Redis async messaging, e.g. a client facing service. If however you need to send
+replies via Redis from one service to another and if each one has it's own Redis instance, you can configure the replies
+to be routed based on the sender address. This can be done as follows
+```csharp
+Configure.With(activationHandler)
+    .Options(o =>
+    {
+        o.SetBusName("main");
+        o.EnableRedis("main-redis:6379", r => r.EnableAsync()
+            .RouteRepliesTo("other-service", "other-redis:6379"));
+    })
+    // ...
+```
+Note that this impacts only the reply routing, all other Redis components will use the main Redis connection configured
+when calling `EnableRedis`.
+
 ## Sage Storage and Outbox
 
 This library also provides a Redis implementation of the saga storage and an outbox implementation modeled after the
