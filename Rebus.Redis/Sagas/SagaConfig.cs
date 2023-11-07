@@ -6,6 +6,9 @@ using Rebus.Sagas;
 // ReSharper disable once CheckNamespace
 namespace Rebus.Config;
 
+/// <summary>
+/// Configuration helper for adding Redis support for saga storage.
+/// </summary>
 public static class SagaConfig
 {
     /// <summary>

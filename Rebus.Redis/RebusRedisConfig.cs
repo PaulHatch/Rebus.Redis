@@ -5,7 +5,7 @@ using System.Linq;
 namespace Rebus.Redis;
 
 /// <summary>
-/// Configuration helper for adding Redis support.
+/// Configuration helper for configuring Redis support.
 /// </summary>
 public class RebusRedisConfig
 {
