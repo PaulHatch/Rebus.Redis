@@ -83,10 +83,11 @@ Configure.With(activationHandler)
 Note that this impacts only the reply routing, all other Redis components will use the main Redis connection configured
 when calling `EnableRedis`.
 
-## Sage Storage and Outbox
+## Sage and Subscription Storage and Outbox
 
-This library also provides a Redis implementation of the saga storage and an outbox implementation modeled after the
-Postgres implementation in Rebus. The outbox is implemented using Redis streams, while sage data is stored using hashes.
+This library also provides a Redis implementation of the saga and subscription storage and an outbox implementation
+modeled after the Postgres implementation in Rebus. The outbox is implemented using Redis streams, sage data is
+stored using Redis hashes, and subscriptions using Redis lists.
 
 Basic configuration for the saga storage and outbox is as follows:
 ```csharp
@@ -98,5 +99,6 @@ Configure.With(activationHandler)
         o.EnableRedis("localhost:6379", r => r.EnableAsync());
     })
     .Outbox(o => o.StoreInRedis())
-    .Sagas(s => s.StoreInRedis());
+    .Sagas(s => s.StoreInRedis())
+    .Subscriptions(s => s.StoreInRedis());
 ```

@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Rebus.Bus;
 using Rebus.Logging;
@@ -20,6 +23,7 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
     private readonly RedisValue _consumerName;
     private readonly ILog _log;
     private readonly RedisOutboxConfiguration _config;
+    private readonly IConnectionMultiplexer? _dedicatedReaderConnection;
 
     public RedisOutboxStorage(
         string outboxName,
@@ -27,6 +31,14 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
         RedisOutboxConfiguration config,
         IRebusLoggerFactory loggerFactory)
     {
+        if (config.UseBlockingRead)
+        {
+            var opts = ConfigurationOptions.Parse(redisProvider.Database.Multiplexer.Configuration);
+            opts.ClientName = "rebus-redis-outbox";
+            opts.AsyncTimeout = Math.Max((int)(config.ForwardingInterval.TotalMilliseconds * 2), opts.AsyncTimeout);
+            _dedicatedReaderConnection = ConnectionMultiplexer.Connect(opts.ToString());
+        }
+
         _outboxName = outboxName;
         _database = redisProvider.Database;
         _groupName = config.ConsumerGroupName;
@@ -71,25 +83,39 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
         }
     }
 
-    public async Task<IEnumerable<OutboxMessage>> GetOrphanedMessageBatch()
+    public async Task<IEnumerable<OutboxMessage>?> GetOrphanedMessageBatch()
     {
         var claims = await _database.StreamAutoClaimAsync(
             _outboxName,
             _groupName,
             _consumerName,
             _config.OrphanedMessageTimeout.Milliseconds,
-            "0-0",
+            ">",
             _config.MessageBatchSize);
 
         return MapBatch(claims.ClaimedEntries);
     }
 
-    public async Task<IEnumerable<OutboxMessage>> GetNextMessageBatch()
+
+    public async Task<IEnumerable<OutboxMessage>?> GetNextMessageBatch()
     {
-        // TODO: If StackExchange Redis adds support for blocking operations, enable it here.  
-        // See:
-        // - https://github.com/StackExchange/StackExchange.Redis/issues/1961
-        // - https://github.com/StackExchange/StackExchange.Redis/issues/2147
+        if (_dedicatedReaderConnection is not null)
+        {
+            // TODO: If StackExchange Redis adds support for blocking operations, remove the explicit blocking reader and
+            // switch to using the built-in blocking reader.
+            // See:
+            // - https://github.com/StackExchange/StackExchange.Redis/issues/1961
+            // - https://github.com/StackExchange/StackExchange.Redis/issues/2147
+
+            var db = _dedicatedReaderConnection.GetDatabase();
+
+            return await db.BlockingGetMessages(
+                _outboxName,
+                _groupName,
+                _consumerName,
+                _config.ForwardingInterval,
+                _config.MessageBatchSize);
+        }
 
         var batch = await _database.StreamReadGroupAsync(
             _outboxName,
@@ -99,7 +125,7 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
             _config.MessageBatchSize,
             true);
 
-        return MapBatch(batch);
+        return batch.Length == 0 ? null : MapBatch(batch);
     }
 
     private IEnumerable<OutboxMessage> MapBatch(StreamEntry[] batch)

@@ -29,7 +29,7 @@ public static class ConfigurationExtensions
 
         try
         {
-            var redis = ConnectionMultiplexer.Connect(connectionString);
+            var redis = ConnectionMultiplexer.Connect(EnsureClientName(connectionString, "rebus-redis"));
             configurer.Register<IConnectionMultiplexer>(_ => redis, "redis");
         }
         catch (Exception e)
@@ -62,7 +62,9 @@ public static class ConfigurationExtensions
             {
                 try
                 {
-                    additionalConnections.Add(connection.Key, ConnectionMultiplexer.Connect(connectionString));
+                    additionalConnections.Add(connection.Key,
+                        ConnectionMultiplexer.Connect(EnsureClientName(connectionString,
+                            $"rebus-redis-{connection.Key}")));
                 }
                 catch (Exception e)
                 {
@@ -111,6 +113,13 @@ public static class ConfigurationExtensions
             if (AsyncPayload.IncludedHeaders.Contains(header)) continue;
             AsyncPayload.IncludedHeaders.Add(header);
         }
+    }
+
+    private static string EnsureClientName(string connectionString, string name)
+    {
+        var config = ConfigurationOptions.Parse(connectionString);
+        config.ClientName ??= name;
+        return config.ToString();
     }
 
     private static void DefaultConfig(RebusRedisConfig a)

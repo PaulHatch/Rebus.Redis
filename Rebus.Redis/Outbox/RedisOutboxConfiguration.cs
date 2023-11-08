@@ -73,7 +73,8 @@ public class RedisOutboxConfiguration
     }
 
     /// <summary>
-    /// Sets the polling interval to check for new messages. Defaults to 1 second.
+    /// Sets either the blocking duration or the polling interval to check for new messages depending on whether
+    /// blocking reads is enabled. Defaults to 5 seconds.
     /// </summary>
     public RedisOutboxConfiguration SetForwardingInterval(TimeSpan forwardingInterval)
     {
@@ -135,17 +136,41 @@ public class RedisOutboxConfiguration
         ForwardingEnabled = enableForwarding;
         return this;
     }
+    
+    /// <summary>
+    /// Enables (default) or disables forwarding of outgoing messages. This must be enabled on at least one job
+    /// somewhere in order for outgoing messages to be sent.
+    /// </summary>
+    public RedisOutboxConfiguration EnableOrphanedForwarding(bool enableOrphanedForwarding = true)
+    {
+        OrphanedForwardingEnabled = enableOrphanedForwarding;
+        return this;
+    }
+    
+    /// <summary>
+    /// Enables or disables blocking read mode for the main outbox forwarder. Defaults to true. When enabled, the outbox
+    /// will use a blocking read on a dedicated connection to wait for new messages. When disabled, the outbox will poll
+    /// for new messages.
+    /// </summary>
+    public RedisOutboxConfiguration EnableBlockingRead(bool enableBlockingRead = true)
+    {
+        UseBlockingRead = enableBlockingRead;
+        return this;
+    }
 
     internal bool CleanupEnabled { get; private set; } = true;
     internal bool ForwardingEnabled { get; private set; } = true;
+    internal bool OrphanedForwardingEnabled { get; private set; } = true;
 
     internal int TrimSize { get; private set; } = 1000;
     internal TimeSpan CleanupInterval { get; private set; } = TimeSpan.FromMinutes(1);
-    internal TimeSpan ForwardingInterval { get; private set; } = TimeSpan.FromSeconds(1);
+    internal TimeSpan ForwardingInterval { get; private set; } = TimeSpan.FromSeconds(5);
+    internal TimeSpan OrphanedForwardingInterval { get; private set; } = TimeSpan.FromSeconds(1);
     internal string? OutboxName { get; private set; }
     internal string? ConsumerGroupName { get; private set; } = "outbox-consumer";
     internal string? ConsumerName { get; private set; } = Guid.NewGuid().ToString();
     internal TimeSpan IdleConsumerTimeout { get; private set; } = TimeSpan.FromMinutes(15);
     internal int MessageBatchSize { get; private set; } = 100;
     internal TimeSpan OrphanedMessageTimeout { get; private set; } = TimeSpan.FromSeconds(30);
+    internal bool UseBlockingRead { get; private set; } = true;
 }

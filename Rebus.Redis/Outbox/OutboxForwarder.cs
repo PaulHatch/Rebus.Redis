@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Rebus.Bus;
@@ -14,6 +16,7 @@ internal class OutboxForwarder : IDisposable, IInitializable
     private readonly IOutboxStorage _outboxStorage;
     private readonly ITransport _transport;
     private readonly IAsyncTask? _forwarder;
+    private readonly IAsyncTask? _orphanedForwarder;
     private readonly IAsyncTask? _cleanup;
     private readonly ILog _logger;
 
@@ -29,24 +32,35 @@ internal class OutboxForwarder : IDisposable, IInitializable
         _outboxStorage = outboxStorage;
         _transport = transport;
         _logger = rebusLoggerFactory.GetLogger<OutboxForwarder>();
-        
+
         if (config.ForwardingEnabled)
         {
             _forwarder = asyncTaskFactory.Create("Outbox Forwarder", RunForwarder,
-                intervalSeconds: config.ForwardingInterval.Seconds);
+                intervalSeconds: config.UseBlockingRead ? 0 : (int) config.ForwardingInterval.TotalSeconds);
         }
         else
         {
             _logger.Info("Outbox forwarding is disabled");
         }
+
         if (config.CleanupEnabled)
         {
             _cleanup = asyncTaskFactory.Create("Outbox Cleanup", RunCleanup,
-                intervalSeconds: config.CleanupInterval.Seconds);
+                intervalSeconds: (int) config.CleanupInterval.TotalSeconds);
         }
         else
         {
             _logger.Info("Outbox cleanup is disabled");
+        }
+        
+        if (config.OrphanedForwardingEnabled)
+        {
+            _orphanedForwarder = asyncTaskFactory.Create("Orphaned Forwarder", RunOrphanedForwarder,
+                intervalSeconds: (int) config.OrphanedForwardingInterval.TotalSeconds);
+        }
+        else
+        {
+            _logger.Info("Orphaned forwarding is disabled");
         }
     }
 
@@ -62,35 +76,68 @@ internal class OutboxForwarder : IDisposable, IInitializable
         _cleanup?.Start();
     }
 
-    async Task RunForwarder()
+    private async Task RunForwarder()
     {
-        _logger.Debug("Checking outbox storage for pending messages");
-
         var cancellationToken = _cancellationTokenSource.Token;
 
         // this value is used to loop until there are no more messages send, otherwise under heavy load we would be
         // waiting between batches for the polling interval even though there are more messages to send
         bool anySent;
-        
+
         do
         {
             anySent = false;
+            var messages = await _outboxStorage.GetNextMessageBatch();
+
+            if (messages is null) continue;
+
             using var scope = new RebusTransactionScope();
-            foreach (var message in await _outboxStorage.GetNextMessageBatch())
+            foreach (var message in messages)
             {
                 anySent = true;
                 var destinationAddress = message.DestinationAddress;
                 var transportMessage = message.ToTransportMessage();
                 var transactionContext = scope.TransactionContext;
 
-                await _sendRetryUtility.ExecuteAsync(
-                    () => _transport.Send(destinationAddress, transportMessage, transactionContext),
-                    cancellationToken);
+                await _transport.Send(destinationAddress, transportMessage, transactionContext);
 
                 await _outboxStorage.MarkAsDispatched(message);
             }
+
             await scope.CompleteAsync();
-        } while (!cancellationToken.IsCancellationRequested && anySent);
+        } while (!cancellationToken.IsCancellationRequested && anySent || true);
+    }
+    
+    private async Task RunOrphanedForwarder()
+    {
+        var cancellationToken = _cancellationTokenSource.Token;
+
+        // this value is used to loop until there are no more messages send, otherwise under heavy load we would be
+        // waiting between batches for the polling interval even though there are more messages to send
+        bool anySent;
+
+        do
+        {
+            anySent = false;
+            var messages = await _outboxStorage.GetOrphanedMessageBatch();
+
+            if (messages is null) continue;
+
+            using var scope = new RebusTransactionScope();
+            foreach (var message in messages)
+            {
+                anySent = true;
+                var destinationAddress = message.DestinationAddress;
+                var transportMessage = message.ToTransportMessage();
+                var transactionContext = scope.TransactionContext;
+
+                await _transport.Send(destinationAddress, transportMessage, transactionContext);
+
+                await _outboxStorage.MarkAsDispatched(message);
+            }
+
+            await scope.CompleteAsync();
+        } while (!cancellationToken.IsCancellationRequested && anySent || true);
     }
 
     public void Dispose()
@@ -98,6 +145,7 @@ internal class OutboxForwarder : IDisposable, IInitializable
         _cancellationTokenSource.Cancel();
         _forwarder?.Dispose();
         _cleanup?.Dispose();
+        _orphanedForwarder?.Dispose();
         _cancellationTokenSource.Dispose();
     }
 

@@ -19,7 +19,7 @@ public interface IOutboxStorage
     /// <summary>
     /// Gets the next message batch to be sent.
     /// </summary>
-    Task<IEnumerable<OutboxMessage>> GetNextMessageBatch();
+    Task<IEnumerable<OutboxMessage>?> GetNextMessageBatch();
 
     Task MarkAsDispatched(OutboxMessage message);
 
@@ -37,5 +37,5 @@ public interface IOutboxStorage
     /// Returns orphaned messages from the outgoing message stream which have not been acknowledged by the consumer
     /// that received them within the configured timeout.
     /// </summary>
-    Task<IEnumerable<OutboxMessage>> GetOrphanedMessageBatch();
+    Task<IEnumerable<OutboxMessage>?> GetOrphanedMessageBatch();
 }
