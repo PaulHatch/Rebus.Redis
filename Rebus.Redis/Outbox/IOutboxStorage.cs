@@ -10,17 +10,13 @@ namespace Rebus.Redis.Outbox;
 public interface IOutboxStorage
 {
     /// <summary>
-    /// Adds the specified message to the outgoing message stream (for the current Redis transaction.
-    /// </summary>
-    /// <param name="message">The message to add</param>
-    /// <param name="transaction">The current Redis transaction</param>
-    Task Save(OutgoingTransportMessage message, RedisTransaction transaction);
-
-    /// <summary>
     /// Gets the next message batch to be sent.
     /// </summary>
     Task<IEnumerable<OutboxMessage>?> GetNextMessageBatch();
 
+    /// <summary>
+    /// Marks the specified message as dispatched.
+    /// </summary>
     Task MarkAsDispatched(OutboxMessage message);
 
     /// <summary>
@@ -38,4 +34,21 @@ public interface IOutboxStorage
     /// that received them within the configured timeout.
     /// </summary>
     Task<IEnumerable<OutboxMessage>?> GetOrphanedMessageBatch();
+}
+
+/// <summary>
+/// Provides a way to store outgoing messages in a Redis stream.
+/// </summary>
+/// <remarks>
+/// Splitting this out from <see cref="IOutboxStorage"/> is a workaround to avoid creating two instances (one for the
+/// decorator, one for the forwarder), each with their own dedicated blocking reader connection.
+/// </remarks>
+internal interface IOutboxQueueStorage
+{
+    /// <summary>
+    /// Adds the specified message to the outgoing message stream (for the current Redis transaction.
+    /// </summary>
+    /// <param name="message">The message to add</param>
+    /// <param name="transaction">The current Redis transaction</param>
+    Task Save(OutgoingTransportMessage message, RedisTransaction transaction);
 }

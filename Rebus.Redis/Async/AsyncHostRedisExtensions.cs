@@ -193,7 +193,7 @@ public static class AsyncHostRedisExtensions
         var headerValue = headers[messageIDHeader];
         var subscriberID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length, 36);
         var messageID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length + 37, 36);
-        var senderAddress = headers[Headers.SenderAddress];
+        var senderAddress = headers.TryGetValue(Headers.SenderAddress, out var header) ? header : "default";
 
         return new ReplyContext(senderAddress, subscriberID, messageID);
     }

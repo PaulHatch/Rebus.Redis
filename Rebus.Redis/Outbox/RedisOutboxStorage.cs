@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Rebus.Bus;
 using Rebus.Logging;
@@ -12,10 +9,10 @@ using StackExchange.Redis;
 
 namespace Rebus.Redis.Outbox;
 
-internal class RedisOutboxStorage : IOutboxStorage, IInitializable
+internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
 {
-    private const string _bodyKey = "body";
-    private const string _addressKey = "address";
+    internal const string BodyKey = "body";
+    internal const string AddressKey = "address";
 
     private readonly RedisKey _outboxName;
     private readonly IDatabaseAsync _database;
@@ -45,23 +42,6 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
         _consumerName = config.ConsumerName;
         _config = config;
         _log = loggerFactory.GetLogger<RedisOutboxStorage>();
-    }
-
-    public Task Save(OutgoingTransportMessage message, RedisTransaction transaction)
-    {
-        var streamPairs = new NameValueEntry[message.TransportMessage.Headers.Count + 2];
-        streamPairs[0] = new NameValueEntry(_addressKey, message.DestinationAddress);
-        streamPairs[1] = new NameValueEntry(_bodyKey, message.TransportMessage.Body);
-        var i = 2;
-        foreach (var header in message.TransportMessage.Headers)
-        {
-            streamPairs[i] = new NameValueEntry("h-" + header.Key, header.Value);
-            i++;
-        }
-
-        transaction.InTransaction(t => t.StreamAddAsync(_outboxName, streamPairs));
-
-        return transaction.Task;
     }
 
     public async Task TrimQueue()
@@ -137,10 +117,10 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
             {
                 switch (value.Name)
                 {
-                    case _bodyKey:
+                    case BodyKey:
                         outboxMessage.Body = value.Value;
                         break;
-                    case _addressKey:
+                    case AddressKey:
                         outboxMessage.DestinationAddress = value.Value;
                         break;
                     default:
@@ -177,6 +157,39 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable
         }
         catch (RedisServerException)
         {
+            // if the stream already exists, this will throw an exception, which we can safely ignore
         }
+    }
+
+    public void Dispose()
+    {
+        _dedicatedReaderConnection?.Dispose();
+    }
+}
+
+internal class RedisOutboxQueueStorage : IOutboxQueueStorage
+{
+    private readonly string _outboxName;
+
+    public RedisOutboxQueueStorage(string outboxName)
+    {
+        _outboxName = outboxName;
+    }
+    
+    public Task Save(OutgoingTransportMessage message, RedisTransaction transaction)
+    {
+        var streamPairs = new NameValueEntry[message.TransportMessage.Headers.Count + 2];
+        streamPairs[0] = new NameValueEntry(RedisOutboxStorage.AddressKey, message.DestinationAddress);
+        streamPairs[1] = new NameValueEntry(RedisOutboxStorage.BodyKey, message.TransportMessage.Body);
+        var i = 2;
+        foreach (var header in message.TransportMessage.Headers)
+        {
+            streamPairs[i] = new NameValueEntry("h-" + header.Key, header.Value);
+            i++;
+        }
+
+        transaction.InTransaction(t => t.StreamAddAsync(_outboxName, streamPairs));
+        
+        return Task.CompletedTask;
     }
 }

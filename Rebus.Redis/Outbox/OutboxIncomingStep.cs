@@ -20,7 +20,7 @@ internal class OutboxIncomingStep : IIncomingStep
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
     }
 
-    public async Task Process(IncomingStepContext context, Func<Task> next)
+    public Task Process(IncomingStepContext context, Func<Task> next)
     {
         var outboxConnection = _provider.GetWithTransaction();
         var transactionContext = context.Load<ITransactionContext>();
@@ -29,6 +29,6 @@ internal class OutboxIncomingStep : IIncomingStep
 
         transactionContext.OnCommit(async _ => await outboxConnection.Commit());
 
-        await next();
+        return next();
     }
 }

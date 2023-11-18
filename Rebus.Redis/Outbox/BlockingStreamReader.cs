@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using StackExchange.Redis;
 
@@ -20,9 +19,10 @@ internal static class BlockingStreamReader
         RedisValue groupName, 
         RedisValue consumerName, 
         TimeSpan block,
-        int? count, 
+        int count, 
         CommandFlags flags = CommandFlags.None)
     {
+        // ReSharper disable StringLiteralTypo
         var response = await db.ExecuteAsync("XREADGROUP",
             "GROUP", groupName, consumerName,
             "COUNT", count,
@@ -30,17 +30,17 @@ internal static class BlockingStreamReader
             "NOACK",
             "STREAMS", key, ">");
 
-        if (response.IsNull)
+        if (response.IsNull || response.Resp3Type != ResultType.Array)
             return null;
         
-        var topic = (RedisResult[]) ((RedisResult[]) response)[0];
-        var topicElements = (RedisResult[]) topic[1];
+        var topic = (RedisResult[]) ((RedisResult[]) response)![0]!;
+        var topicElements = (RedisResult[]) topic[1]!;
         
         var result = new List<OutboxMessage>();
 
-        foreach (RedisResult[] element in topicElements)
+        foreach (RedisResult[]? element in topicElements)
         {
-            var id = element[0].ToString();
+            var id = element![0].ToString();
             var values = element[1].ToDictionary();
             
             var outboxMessage = new OutboxMessage(id);
@@ -49,7 +49,7 @@ internal static class BlockingStreamReader
                 switch (value.Key)
                 {
                     case _bodyKey:
-                        outboxMessage.Body = (byte[])value.Value;
+                        outboxMessage.Body = (byte[])value.Value!;
                         break;
                     case _addressKey:
                         outboxMessage.DestinationAddress = value.Value.ToString();

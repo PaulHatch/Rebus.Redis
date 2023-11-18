@@ -12,12 +12,12 @@ namespace Rebus.Redis.Outbox;
 internal class OutboxClientTransportDecorator : ITransport
 {
     private readonly ITransport _transport;
-    private readonly IOutboxStorage _outboxStorage;
+    private readonly IOutboxQueueStorage _outboxQueueStorage;
 
-    public OutboxClientTransportDecorator(ITransport transport, IOutboxStorage outboxStorage)
+    public OutboxClientTransportDecorator(ITransport transport, IOutboxQueueStorage outboxQueueStorage)
     {
         _transport = transport ?? throw new ArgumentNullException(nameof(transport));
-        _outboxStorage = outboxStorage ?? throw new ArgumentNullException(nameof(outboxStorage));
+        _outboxQueueStorage = outboxQueueStorage ?? throw new ArgumentNullException(nameof(outboxQueueStorage));
     }
 
     public void CreateQueue(string address) => _transport.CreateQueue(address);
@@ -26,11 +26,10 @@ internal class OutboxClientTransportDecorator : ITransport
     {
         var redisTransaction = context.GetOrNull<RedisTransaction>(RedisProvider.CurrentOutboxConnectionKey);
 
-        // Leave behavior unchanged if there is no transaction
-        
+        // skip outbox if there is no transaction active
         return redisTransaction == null ? 
             _transport.Send(destinationAddress, message, context) : 
-            _outboxStorage.Save(new OutgoingTransportMessage(message, destinationAddress), redisTransaction);
+            _outboxQueueStorage.Save(new OutgoingTransportMessage(message, destinationAddress), redisTransaction);
     }
 
     public Task<TransportMessage> Receive(ITransactionContext context, CancellationToken cancellationToken) =>

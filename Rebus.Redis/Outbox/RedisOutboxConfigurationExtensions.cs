@@ -1,16 +1,15 @@
 using System;
+using Rebus.Config;
 using Rebus.Exceptions;
 using Rebus.Logging;
 using Rebus.Pipeline;
-using Rebus.Pipeline.Send;
-using Rebus.Redis;
 using Rebus.Redis.Outbox;
 using Rebus.Retry.Simple;
 using Rebus.Threading;
 using Rebus.Transport;
 
 // ReSharper disable once CheckNamespace
-namespace Rebus.Config;
+namespace Rebus.Redis;
 
 /// <summary>
 /// Configuration extensions for the experimental outbox support
@@ -32,11 +31,11 @@ public static class RedisOutboxConfigurationExtensions
         {
             configure(StandardConfigurer<IOutboxStorage>.GetConfigurerFrom(o));
 
-            // if no outbox storage was registered, no further calls must have been made... that's ok, so we just bail out here
+            // end here if the outbox was not configured in the configure action provided by the caller
             if (!o.Has<IOutboxStorage>()) return;
 
             o.Decorate<ITransport>(
-                c => new OutboxClientTransportDecorator(c.Get<ITransport>(), c.Get<IOutboxStorage>()));
+                c => new OutboxClientTransportDecorator(c.Get<ITransport>(), c.Get<IOutboxQueueStorage>()));
 
             o.Register(c =>
             {
@@ -67,15 +66,6 @@ public static class RedisOutboxConfigurationExtensions
                 var step = new OutboxIncomingStep(redisProvider);
                 return new PipelineStepInjector(pipeline)
                     .OnReceive(step, PipelineRelativePosition.After, typeof(DefaultRetryStep));
-            });
-
-            o.Decorate<IPipeline>(c =>
-            {
-                var pipeline = c.Get<IPipeline>();
-                var redisProvider = c.Get<RedisProvider>();
-                var step = new OutboxOutgoingStep(redisProvider);
-                return new PipelineStepInjector(pipeline)
-                    .OnSend(step, PipelineRelativePosition.Before, typeof(SendOutgoingMessageStep));
             });
         });
 
@@ -111,11 +101,21 @@ public static class RedisOutboxConfigurationExtensions
                     r.Get<RedisProvider>(),
                     config,
                     r.Get<IRebusLoggerFactory>());
+            },"Outbox Storage");
+        
+        configurer.OtherService<IOutboxQueueStorage>()
+            .Register(r =>
+            {
+                var config = r.Get<RedisOutboxConfiguration>();
+                var options = r.Get<Options>();
+                var outboxName = config.OutboxName ??
+                                 options.OptionalBusName.AddSuffix() ??
+                                 throw new RebusConfigurationException(
+                                     "Either an outbox name or a bus name must be specified");
+                
+                return new RedisOutboxQueueStorage(outboxName);
             });
     }
 
-    private static string? AddSuffix(this string? name)
-    {
-        return name is null ? null : $"{name}-outbox";
-    }
+    private static string? AddSuffix(this string? name) => name is null ? null : $"{name}-outbox";
 }
