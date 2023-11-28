@@ -1,15 +1,15 @@
 using System;
-using Rebus.Config;
 using Rebus.Exceptions;
 using Rebus.Logging;
 using Rebus.Pipeline;
+using Rebus.Redis;
 using Rebus.Redis.Outbox;
 using Rebus.Retry.Simple;
 using Rebus.Threading;
 using Rebus.Transport;
 
 // ReSharper disable once CheckNamespace
-namespace Rebus.Redis;
+namespace Rebus.Config;
 
 /// <summary>
 /// Configuration extensions for the experimental outbox support
@@ -21,7 +21,7 @@ public static class RedisOutboxConfigurationExtensions
     /// This will store a (message ID, source queue) tuple for all processed messages, and under this tuple any messages sent/published will
     /// also be stored, thus enabling truly idempotent message processing.
     /// </summary>
-    public static RebusConfigurer Outbox(this RebusConfigurer configurer,
+    public static RebusConfigurer RedisOutbox(this RebusConfigurer configurer,
         Action<StandardConfigurer<IOutboxStorage>> configure)
     {
         if (configurer == null) throw new ArgumentNullException(nameof(configurer));

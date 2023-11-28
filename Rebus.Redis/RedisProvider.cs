@@ -10,7 +10,7 @@ namespace Rebus.Redis;
 /// </summary>
 internal class RedisProvider
 {
-    internal const string CurrentOutboxConnectionKey = "current-outbox-connection";
+    internal const string CurrentOutboxConnectionKey = "redis-outbox-connection";
     private readonly IConnectionMultiplexer _redis;
 
     /// <summary>

@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Library</OutputType>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <LangVersion>11</LangVersion>
+        <LangVersion>12</LangVersion>
         <Authors>Paul Hatcherian</Authors>
         <Description>
             Provides a Redis driver for Rebus
@@ -25,7 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Rebus" Version="8.0.1" />
+      <PackageReference Include="Rebus" Version="8.0.2" />
       <PackageReference Include="StackExchange.Redis" Version="2.7.4" />
     </ItemGroup>
 
