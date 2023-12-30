@@ -22,7 +22,10 @@ public static class ConfigurationExtensions
         string connectionString,
         Action<RebusRedisConfig>? configure = null)
     {
-        if (configurer == null) throw new ArgumentNullException(nameof(configurer));
+        if (configurer == null)
+        {
+            throw new ArgumentNullException(nameof(configurer));
+        }
 
         var config = new RebusRedisConfig();
         (configure ?? DefaultConfig).Invoke(config);
@@ -110,7 +113,11 @@ public static class ConfigurationExtensions
 
         foreach (var header in config.AdditionalHeaders)
         {
-            if (AsyncPayload.IncludedHeaders.Contains(header)) continue;
+            if (AsyncPayload.IncludedHeaders.Contains(header))
+            {
+                continue;
+            }
+
             AsyncPayload.IncludedHeaders.Add(header);
         }
     }

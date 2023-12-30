@@ -54,8 +54,16 @@ internal static class MurmurHash3
         if (remainder > 0)
         {
             uint num = 0;
-            if (remainder > 2) num ^= Unsafe.Add(ref endPoint, 2) << 16;
-            if (remainder > 1) num ^= Unsafe.Add(ref endPoint, 1) << 8;
+            if (remainder > 2)
+            {
+                num ^= Unsafe.Add(ref endPoint, 2) << 16;
+            }
+
+            if (remainder > 1)
+            {
+                num ^= Unsafe.Add(ref endPoint, 1) << 8;
+            }
+
             num ^= endPoint;
 
             seed ^= RotateLeft(num * 3432918353U, 15) * 461845907U;

@@ -172,7 +172,9 @@ public static class AsyncHostRedisExtensions
     {
         if (!context.Headers.ContainsKey(AsyncHeaders.Timeout) ||
             long.TryParse(context.Headers[AsyncHeaders.Timeout], out var timeout))
+        {
             return null;
+        }
 
         return TimeSpan.FromMilliseconds(timeout);
     }
@@ -188,7 +190,9 @@ public static class AsyncHostRedisExtensions
     {
         var messageIDHeader = fromReplyTo ? Headers.InReplyTo : Headers.MessageId;
         if (!headers.ContainsKey(messageIDHeader) || !headers[messageIDHeader].StartsWith(AsyncHeaders.MessageIDPrefix))
+        {
             return null;
+        }
 
         var headerValue = headers[messageIDHeader];
         var subscriberID = headerValue.Substring(AsyncHeaders.MessageIDPrefix.Length, 36);

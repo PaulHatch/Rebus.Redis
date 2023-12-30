@@ -26,7 +26,11 @@ internal class OutboxForwarder : IDisposable, IInitializable
         ITransport transport,
         RedisOutboxConfiguration config)
     {
-        if (asyncTaskFactory == null) throw new ArgumentNullException(nameof(asyncTaskFactory));
+        if (asyncTaskFactory == null)
+        {
+            throw new ArgumentNullException(nameof(asyncTaskFactory));
+        }
+
         _outboxStorage = outboxStorage;
         _transport = transport;
         var logger = rebusLoggerFactory.GetLogger<OutboxForwarder>();
@@ -71,7 +75,10 @@ internal class OutboxForwarder : IDisposable, IInitializable
         {
             var messages = await _outboxStorage.GetNextMessageBatch();
 
-            if (messages is null) continue;
+            if (messages is null)
+            {
+                continue;
+            }
 
             using var scope = new RebusTransactionScope();
             foreach (var message in messages)
@@ -114,7 +121,10 @@ internal class OutboxForwarder : IDisposable, IInitializable
             anySent = false;
             var messages = await _outboxStorage.GetNextMessageBatch();
 
-            if (messages is null) continue;
+            if (messages is null)
+            {
+                continue;
+            }
 
             using var scope = new RebusTransactionScope();
             foreach (var message in messages)
@@ -145,7 +155,10 @@ internal class OutboxForwarder : IDisposable, IInitializable
             anySent = false;
             var messages = await _outboxStorage.GetOrphanedMessageBatch();
 
-            if (messages is null) continue;
+            if (messages is null)
+            {
+                continue;
+            }
 
             using var scope = new RebusTransactionScope();
             foreach (var message in messages)

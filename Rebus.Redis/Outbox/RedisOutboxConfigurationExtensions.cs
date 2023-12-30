@@ -24,15 +24,25 @@ public static class RedisOutboxConfigurationExtensions
     public static RebusConfigurer RedisOutbox(this RebusConfigurer configurer,
         Action<StandardConfigurer<IOutboxStorage>> configure)
     {
-        if (configurer == null) throw new ArgumentNullException(nameof(configurer));
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        if (configurer == null)
+        {
+            throw new ArgumentNullException(nameof(configurer));
+        }
+
+        if (configure == null)
+        {
+            throw new ArgumentNullException(nameof(configure));
+        }
 
         configurer.Options(o =>
         {
             configure(StandardConfigurer<IOutboxStorage>.GetConfigurerFrom(o));
 
             // end here if the outbox was not configured in the configure action provided by the caller
-            if (!o.Has<IOutboxStorage>()) return;
+            if (!o.Has<IOutboxStorage>())
+            {
+                return;
+            }
 
             o.Decorate<ITransport>(
                 c => new OutboxClientTransportDecorator(c.Get<ITransport>(), c.Get<IOutboxQueueStorage>()));
@@ -80,7 +90,11 @@ public static class RedisOutboxConfigurationExtensions
         this StandardConfigurer<IOutboxStorage> configurer,
         Action<RedisOutboxConfiguration>? configure = default)
     {
-        if (configurer == null) throw new ArgumentNullException(nameof(configurer));
+        if (configurer == null)
+        {
+            throw new ArgumentNullException(nameof(configurer));
+        }
+
         var outboxConfig = new RedisOutboxConfiguration();
         configure?.Invoke(outboxConfig);
         configurer.OtherService<RedisOutboxConfiguration>()

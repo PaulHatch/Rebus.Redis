@@ -40,13 +40,18 @@ internal class RedisSagaStorage : ISagaStorage
             var indexKey = GetIndexKey(sagaDataType, propertyName, propertyValue.ToString());
             var lookup = await _redisProvider.Database.HashGetAsync(indexKey.Key, indexKey.HashField);
             if (lookup.IsNullOrEmpty)
+            {
                 return null!;
+            }
+
             key = lookup.ToString();
         }
 
         var result = await _redisProvider.Database.HashGetAsync(key, "dat");
         if (result.IsNullOrEmpty)
+        {
             return null!;
+        }
 
         return (ISagaData) JsonSerializer.Deserialize(result.ToString(), sagaDataType, _serializeOptions)!;
     }

@@ -54,7 +54,10 @@ public class RedisTransaction
     /// </summary>
     public async Task Commit()
     {
-        if (_transaction is null) return;
+        if (_transaction is null)
+        {
+            return;
+        }
 
         await _transaction.ExecuteAsync();
         await Task.WhenAll(_tasks);

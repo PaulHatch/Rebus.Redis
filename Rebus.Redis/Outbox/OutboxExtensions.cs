@@ -12,8 +12,15 @@ public static class OutboxExtensions
     /// </summary>
     public static void UseOutbox(this RebusTransactionScope rebusTransactionScope, ITransaction transaction)
     {
-        if (rebusTransactionScope == null) throw new ArgumentNullException(nameof(rebusTransactionScope));
-        if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+        if (rebusTransactionScope == null)
+        {
+            throw new ArgumentNullException(nameof(rebusTransactionScope));
+        }
+
+        if (transaction == null)
+        {
+            throw new ArgumentNullException(nameof(transaction));
+        }
 
         var context = rebusTransactionScope.TransactionContext;
 

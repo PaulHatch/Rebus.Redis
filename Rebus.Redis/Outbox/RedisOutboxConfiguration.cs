@@ -56,7 +56,10 @@ public class RedisOutboxConfiguration
     public RedisOutboxConfiguration SetIdleConsumerTimeout(TimeSpan idleConsumerTimeout)
     {
         if (idleConsumerTimeout < TimeSpan.FromSeconds(1))
+        {
             throw new ArgumentOutOfRangeException(nameof(idleConsumerTimeout));
+        }
+
         IdleConsumerTimeout = idleConsumerTimeout;
         return this;
     }
@@ -67,7 +70,11 @@ public class RedisOutboxConfiguration
     /// </summary>
     public RedisOutboxConfiguration SetCleanupInterval(TimeSpan cleanupInterval)
     {
-        if (cleanupInterval < TimeSpan.FromSeconds(1)) throw new ArgumentOutOfRangeException(nameof(cleanupInterval));
+        if (cleanupInterval < TimeSpan.FromSeconds(1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(cleanupInterval));
+        }
+
         CleanupInterval = cleanupInterval;
         return this;
     }
@@ -79,7 +86,10 @@ public class RedisOutboxConfiguration
     public RedisOutboxConfiguration SetForwardingInterval(TimeSpan forwardingInterval)
     {
         if (forwardingInterval < TimeSpan.FromSeconds(1))
+        {
             throw new ArgumentOutOfRangeException(nameof(forwardingInterval));
+        }
+
         ForwardingInterval = forwardingInterval;
         return this;
     }
@@ -89,7 +99,11 @@ public class RedisOutboxConfiguration
     /// </summary>
     public RedisOutboxConfiguration SetTrimSize(int trimSize)
     {
-        if (trimSize < 0) throw new ArgumentOutOfRangeException(nameof(trimSize));
+        if (trimSize < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(trimSize));
+        }
+
         TrimSize = trimSize;
         return this;
     }
@@ -99,7 +113,10 @@ public class RedisOutboxConfiguration
     /// </summary>
     public RedisOutboxConfiguration SetMessageBatchSize(int messageBatchSize)
     {
-        if (messageBatchSize < 1) throw new ArgumentOutOfRangeException(nameof(messageBatchSize));
+        if (messageBatchSize < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(messageBatchSize));
+        }
 
         MessageBatchSize = messageBatchSize;
         return this;
@@ -113,7 +130,10 @@ public class RedisOutboxConfiguration
     public RedisOutboxConfiguration SetOrphanedMessageTimeout(TimeSpan orphanedMessageTimeout)
     {
         if (orphanedMessageTimeout < TimeSpan.FromSeconds(1))
+        {
             throw new ArgumentOutOfRangeException(nameof(orphanedMessageTimeout));
+        }
+
         OrphanedMessageTimeout = orphanedMessageTimeout;
         return this;
     }

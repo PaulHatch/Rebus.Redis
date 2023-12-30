@@ -9,7 +9,9 @@ internal static class ExtensionMethods
     public static string ToKebabCase(this string name)
     {
         if (string.IsNullOrEmpty(name))
+        {
             return name;
+        }
 
         var builder = new StringBuilder(name.Length + Math.Min(2, name.Length / 5));
         var previousCategory = default(UnicodeCategory?);
@@ -45,12 +47,18 @@ internal static class ExtensionMethods
                 case UnicodeCategory.LowercaseLetter:
                 case UnicodeCategory.DecimalDigitNumber:
                     if (previousCategory == UnicodeCategory.SpaceSeparator)
+                    {
                         builder.Append('-');
+                    }
+
                     break;
 
                 default:
                     if (previousCategory != null)
+                    {
                         previousCategory = UnicodeCategory.SpaceSeparator;
+                    }
+
                     continue;
             }
 

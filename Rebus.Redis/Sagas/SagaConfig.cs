@@ -16,6 +16,7 @@ public static class SagaConfig
     /// (if you need a saga storage that is pretty fast), it is probably better to use a persistent storage (like SQL Server
     /// or another database), because the state of all sagas will be lost in case the endpoint is restarted.
     /// </summary>
+    /// <param name="configurer">Configuration helper.</param>
     /// <param name="shardCount">
     /// The number of hash maps to use for storage of correlation ID indexes per sage type, defaults to 1. For
     /// high-volume systems, setting this to a higher number can improve performance of concurrent lookups.
@@ -24,9 +25,15 @@ public static class SagaConfig
         this StandardConfigurer<ISagaStorage> configurer,
         int shardCount = 1)
     {
-        if (configurer == null) throw new ArgumentNullException(nameof(configurer));
+        if (configurer == null)
+        {
+            throw new ArgumentNullException(nameof(configurer));
+        }
+
         if (shardCount < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(shardCount), "Shard count must be greater than 0");
+        }
 
         configurer.Register(c => new RedisSagaStorage(c.Get<RedisProvider>(),
             shardCount));

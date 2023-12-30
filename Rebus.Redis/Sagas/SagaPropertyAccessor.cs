@@ -20,7 +20,11 @@ internal class SagaPropertyAccessor
     {
         var (type, property) = arg;
         var propertyInfo = type.GetProperty(property);
-        if (propertyInfo == null) throw new ArgumentException($"Saga data type {type.Name} does not have a property {property}");
+        if (propertyInfo == null)
+        {
+            throw new ArgumentException($"Saga data type {type.Name} does not have a property {property}");
+        }
+
         var parameter = Expression.Parameter(typeof(ISagaData));
         var convertedParameter = Expression.Convert(parameter, type);
         var propertyAccess = Expression.Property(convertedParameter, propertyInfo);

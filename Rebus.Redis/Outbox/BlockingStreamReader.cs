@@ -31,8 +31,10 @@ internal static class BlockingStreamReader
             "STREAMS", key, ">");
 
         if (response.IsNull || response.Resp3Type != ResultType.Array)
+        {
             return null;
-        
+        }
+
         var topic = (RedisResult[]) ((RedisResult[]) response)![0]!;
         var topicElements = (RedisResult[]) topic[1]!;
         

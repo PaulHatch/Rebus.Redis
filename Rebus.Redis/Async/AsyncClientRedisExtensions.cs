@@ -32,7 +32,9 @@ public static class AsyncClientRedisExtensions
         CancellationToken shutdownToken)
     {
         if (_isInitialized)
+        {
             throw new InvalidOperationException("The listener has already been initialized.");
+        }
 
         var db = redis.GetDatabase();
         do
@@ -62,8 +64,16 @@ public static class AsyncClientRedisExtensions
 
     private static async void HandleResponseMessage(RedisChannel channel, RedisValue value)
     {
-        if (_serializer is null) throw new /*Unreachable*/Exception("No serializer has been registered.");
-        if (value.IsNull) throw new ArgumentNullException(nameof(value), "A null value was received from Redis.");
+        if (_serializer is null)
+        {
+            throw new /*Unreachable*/Exception("No serializer has been registered.");
+        }
+
+        if (value.IsNull)
+        {
+            throw new ArgumentNullException(nameof(value), "A null value was received from Redis.");
+        }
+
         var payload = AsyncPayload.FromJson(value!);
 
         if (!_messages.TryRemove(payload.MessageID, out var pendingTask))
@@ -116,14 +126,26 @@ public static class AsyncClientRedisExtensions
         TimeSpan? timeout = null,
         CancellationToken externalCancellationToken = default)
     {
-        if (!_isInitialized) throw new InvalidOperationException("The Redis listener has not been initialized.");
+        if (!_isInitialized)
+        {
+            throw new InvalidOperationException("The Redis listener has not been initialized.");
+        }
 
-        if (bus == null) throw new ArgumentNullException(nameof(bus));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (bus == null)
+        {
+            throw new ArgumentNullException(nameof(bus));
+        }
+
+        if (request == null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
 
         var maxWaitTime = timeout ?? TimeSpan.FromSeconds(15);
         if (optionalHeaders?.TryGetValue(Headers.MessageId, out var messageID) is not true)
+        {
             messageID = Guid.NewGuid().ToString();
+        }
 
         using var timeoutCancellationTokenSource = new CancellationTokenSource(maxWaitTime);
         using var cancellationTokenSource =
