@@ -7,9 +7,10 @@ multiple services in parallel, then return data from one or more of those servic
 
 There is [an existing async library for Rebus](https://github.com/rebus-org/Rebus.Async) which uses the normal Rebus
 transport to send a reply, however it is marked experimental and the reasoning given for this is quite a reasonable one
-that [durable messages are not suitable for the ephemeral state of an async request](https://github.com/rebus-org/Rebus.Async/issues/19#issuecomment-1243273692).
-In place of using the normal Rebus transport, this library uses Redis pub/sub to send the reply, which is well suited to
-the ephemeral nature of async requests.
+that [durable messages are not suitable for the ephemeral state of an async request](https://github.com/rebus-org/Rebus.Async/issues/19#issuecomment-1243273692). A pending async await is by
+nature ephemeral, using a persistent queue to send a reply is undesirable. In place of using the normal Rebus transport,
+this library uses Redis pub/sub to send the reply, only currently subscribed listeners will receive the reply making it
+well suited for our purposes.
 
 Using async you can make a call like this on the client:
 ```csharp
@@ -22,15 +23,16 @@ you can then do a simple like this:
 await bus.ReplyAsync(replyMessage);
 ```
 
-However there are also some additional methods to allow some additional flexibility. Calling `GetReplyContext` in the
-context of a Redis async request will return a context to allow you to send a reply at some later date. This context
-can be added to a saga state, allowing a future message to reply to the original request.
+There are also some additional methods to allow flexibility in cases like sagas where the handler is not ready to reply
+until some further action is taken. Calling `GetReplyContext` in the context of a Redis async request will return a
+context to allow you to send a reply at some later date. This context is just an identifier, it is safe to store and can
+be added to a saga state, allowing a future message to reply to the original request.
 ```csharp
 var replyContext = messageContext.GetReplyContext();
 await replyContext.ReplyAsync(replyMessage);
 ```
 
-Additionally, the timeout for the caller is sent along with the request so that the recipient of a message can determine
+In addition, the timeout for the caller is sent along with the request so that the recipient of a message can determine
 how long the caller will be waiting for a response, which may be useful for cancelling a task or determining whether to
 send a response to the caller.
 
@@ -102,3 +104,11 @@ Configure.With(activationHandler)
     .Sagas(s => s.StoreInRedis())
     .Subscriptions(s => s.StoreInRedis());
 ```
+
+This outbox only makes sense to use when the activity being performed is also stored in Redis, e.g. for sagas that use
+Redis storage. Internally the outbox is implemented using Redis streams using the StackExchange Redis client. Currently
+due to the way that commands are multiplexed, blocking stream reads are not supported, since this would block all Redis
+operations being performed by the application, only polling mode is available. To ensure messages are received as with
+as little latency as possible, an additional Redis connection is created for each sender dedicated to listening for the
+outgoing messages, using the arbitrary execute command to perform a blocking read. This can be disabled by calling 
+`options.EnableBlockingRead(false);` in the outbox configuration method.
