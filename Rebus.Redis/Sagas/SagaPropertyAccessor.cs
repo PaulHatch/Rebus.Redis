@@ -12,7 +12,7 @@ internal class SagaPropertyAccessor
 
     public object? GetValueFromSagaData(ISagaData data, ISagaCorrelationProperty property)
     {
-        var accessor = _getValuesCache.GetOrAdd((data.GetType(), property.PropertyName),CreateAccessor);
+        var accessor = _getValuesCache.GetOrAdd((data.GetType(), property.PropertyName), CreateAccessor);
         return accessor(data);
     }
 

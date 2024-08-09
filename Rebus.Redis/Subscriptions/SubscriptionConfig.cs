@@ -17,8 +17,8 @@ public static class SubscriptionConfig
     /// <param name="isCentralized">True if the subscription storage is centralized. Defaults to false.</param>
     /// <param name="connectionString">
     /// Override connection string to the Redis server, by the default the connection specified when the
-    /// <see cref="OptionsConfigurer.EnableRedis()"/> extension method was called. Set this value if using a different
-    /// Redis server for subscription storage. 
+    /// <see cref="OptionsConfigurer.EnableRedis()" /> extension method was called. Set this value if using a different
+    /// Redis server for subscription storage.
     /// </param>
     public static void StoreInRedis(this StandardConfigurer<ISubscriptionStorage> configurer,
         string prefix = "rebus-subscription:",

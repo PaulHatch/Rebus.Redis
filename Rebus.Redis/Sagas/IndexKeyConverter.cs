@@ -23,6 +23,7 @@ internal class IndexKeyConverter : JsonConverter<IndexKey>
             {
                 break;
             }
+
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
                 continue;

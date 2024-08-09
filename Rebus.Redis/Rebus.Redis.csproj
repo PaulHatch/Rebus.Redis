@@ -18,15 +18,15 @@
         <PackageIcon>icon.png</PackageIcon>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    
+
     <ItemGroup>
-        <None Include="..\images\icon.png" Pack="true" PackagePath="\" />
-        <None Include="..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\images\icon.png" Pack="true" PackagePath="\"/>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Rebus" Version="8.1.0" />
-      <PackageReference Include="StackExchange.Redis" Version="2.7.10" />
+        <PackageReference Include="Rebus" Version="8.4.3"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.8.0"/>
     </ItemGroup>
 
 </Project>

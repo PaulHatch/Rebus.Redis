@@ -29,14 +29,16 @@ public static class AsyncHostRedisExtensions
 
     private static IDatabaseAsync GetDatabase(string address)
     {
-        var connection  = _additionalConnections?.ContainsKey(address) == true ?
-            _additionalConnections[address] : _connection;
-        
-        return connection?.GetDatabase() ?? throw new InvalidOperationException("Redis host support has not been initialized");
+        var connection = _additionalConnections?.ContainsKey(address) == true
+            ? _additionalConnections[address]
+            : _connection;
+
+        return connection?.GetDatabase() ??
+               throw new InvalidOperationException("Redis host support has not been initialized");
     }
 
     /// <summary>
-    /// Gets a <see cref="ReplyContext"/> from a <see cref="IMessageContext"/> which can be used to reply to the
+    /// Gets a <see cref="ReplyContext" /> from a <see cref="IMessageContext" /> which can be used to reply to the
     /// message. If the message context does not contain the required headers, null is returned.
     /// </summary>
     /// <param name="context">Message context to extract reply context from.</param>
@@ -47,7 +49,7 @@ public static class AsyncHostRedisExtensions
     }
 
     /// <summary>
-    /// Gets a <see cref="ReplyContext"/> from a <see cref="TransportMessage"/> which can be used to reply to the
+    /// Gets a <see cref="ReplyContext" /> from a <see cref="TransportMessage" /> which can be used to reply to the
     /// message. If the message context does not contain the required headers, null is returned.
     /// </summary>
     /// <param name="message">Message to extract reply context from.</param>
@@ -58,8 +60,8 @@ public static class AsyncHostRedisExtensions
     }
 
     /// <summary>
-    /// Gets a <see cref="ReplyContext"/> from a <see cref="TransportMessage"/> similar to
-    /// <see cref="GetReplyContext(TransportMessage)"/> except that the reply to header is the one considered as the
+    /// Gets a <see cref="ReplyContext" /> from a <see cref="TransportMessage" /> similar to
+    /// <see cref="GetReplyContext(TransportMessage)" /> except that the reply to header is the one considered as the
     /// destination.
     /// </summary>
     /// <param name="message">Message to extract reply context from.</param>
@@ -180,11 +182,13 @@ public static class AsyncHostRedisExtensions
     }
 
     /// <summary>
-    /// Produces a new <see cref="ReplyContext"/> based on the provided context information.
+    /// Produces a new <see cref="ReplyContext" /> based on the provided context information.
     /// </summary>
     /// <param name="headers"></param>
-    /// <param name="fromReplyTo">Set to true to get headers for an outgoing message or false to get them from
-    /// and incoming message.</param>
+    /// <param name="fromReplyTo">
+    /// Set to true to get headers for an outgoing message or false to get them from
+    /// and incoming message.
+    /// </param>
     /// <returns>A new reply context for the headers provided.</returns>
     private static ReplyContext? GetContextFromHeaders(IDictionary<string, string> headers, bool fromReplyTo)
     {

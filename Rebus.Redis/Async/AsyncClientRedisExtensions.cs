@@ -109,15 +109,24 @@ public static class AsyncClientRedisExtensions
     }
 
     /// <summary>
-    /// Extension method on <see cref="IBus"/> that allows for asynchronously sending a request and dispatching
+    /// Extension method on <see cref="IBus" /> that allows for asynchronously sending a request and dispatching
     /// the received reply to the continuation.
     /// </summary>
-    /// <typeparam name="TReply">Specifies the expected type of the reply. Can be any type compatible with the actually received reply</typeparam>
+    /// <typeparam name="TReply">
+    /// Specifies the expected type of the reply. Can be any type compatible with the actually
+    /// received reply
+    /// </typeparam>
     /// <param name="bus">The bus API to use when sending the request</param>
     /// <param name="request">The request message</param>
     /// <param name="optionalHeaders">Headers to be included in the request message</param>
-    /// <param name="timeout">Optionally specifies the max time to wait for a reply. If this time is exceeded, a <see cref="TimeoutException"/> is thrown</param>
-    /// <param name="externalCancellationToken">An external cancellation token from some outer context that cancels waiting for a reply</param>
+    /// <param name="timeout">
+    /// Optionally specifies the max time to wait for a reply. If this time is exceeded, a
+    /// <see cref="TimeoutException" /> is thrown
+    /// </param>
+    /// <param name="externalCancellationToken">
+    /// An external cancellation token from some outer context that cancels waiting for
+    /// a reply
+    /// </param>
     /// <returns></returns>
     public static async Task<TReply> SendRequest<TReply>(
         this IBus bus,
@@ -165,7 +174,7 @@ public static class AsyncClientRedisExtensions
             {
                 taskCompletionSource.SetCanceled();
             }
-        }, useSynchronizationContext: false);
+        }, false);
 
         if (!_messages.TryAdd(messageID, (taskCompletionSource, typeof(TReply))))
         {

@@ -7,13 +7,13 @@ namespace Rebus.Redis.Async;
 
 internal class HostInitializer : IInitializable
 {
+    private readonly IReadOnlyDictionary<string, IConnectionMultiplexer> _additionalConnections;
     private readonly IConnectionMultiplexer _connection;
     private readonly ISerializer _objectSerializer;
-    private readonly IReadOnlyDictionary<string, IConnectionMultiplexer> _additionalConnections;
 
     public HostInitializer(
-        IConnectionMultiplexer connection, 
-        ISerializer objectSerializer, 
+        IConnectionMultiplexer connection,
+        ISerializer objectSerializer,
         IReadOnlyDictionary<string, IConnectionMultiplexer> additionalConnections)
     {
         _connection = connection;

@@ -12,14 +12,14 @@ namespace Rebus.Redis.Sagas;
 
 internal class RedisSagaStorage : ISagaStorage
 {
-    private readonly RedisProvider _redisProvider;
-    private readonly SagaPropertyAccessor _propertyAccessor = new();
-    private readonly int _shards;
-
     private static readonly JsonSerializerOptions _serializeOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    private readonly SagaPropertyAccessor _propertyAccessor = new();
+    private readonly RedisProvider _redisProvider;
+    private readonly int _shards;
 
     public RedisSagaStorage(RedisProvider redis, int shards)
     {
@@ -177,18 +177,25 @@ internal class RedisSagaStorage : ISagaStorage
         await txn.Task;
     }
 
-    private static string GetKey(ISagaData data) => GetKey(data.GetType(), data.Id);
+    private static string GetKey(ISagaData data)
+    {
+        return GetKey(data.GetType(), data.Id);
+    }
 
-    private static string GetKey(Type type, object? id) =>
-        $"saga:{type.Name.ToKebabCase()}:{id ?? throw new ArgumentNullException(nameof(id))}";
+    private static string GetKey(Type type, object? id)
+    {
+        return $"saga:{type.Name.ToKebabCase()}:{id ?? throw new ArgumentNullException(nameof(id))}";
+    }
 
     private List<IndexKey> GetIndexKeys(ISagaData data,
-        IEnumerable<ISagaCorrelationProperty> correlationProperties) =>
-        correlationProperties
+        IEnumerable<ISagaCorrelationProperty> correlationProperties)
+    {
+        return correlationProperties
             .Where(property => !property.PropertyName.Equals(nameof(ISagaData.Id), StringComparison.OrdinalIgnoreCase))
             .Select(property => GetIndexKey(data, property))
             .OfType<IndexKey>()
             .ToList();
+    }
 
     private IndexKey? GetIndexKey(ISagaData data, ISagaCorrelationProperty property)
     {

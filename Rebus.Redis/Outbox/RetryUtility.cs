@@ -11,7 +11,7 @@ namespace Rebus.Redis.Outbox;
 /// </summary>
 internal class RetryUtility
 {
-    readonly List<TimeSpan> _delays;
+    private readonly List<TimeSpan> _delays;
 
     public RetryUtility(IEnumerable<TimeSpan> delays)
     {

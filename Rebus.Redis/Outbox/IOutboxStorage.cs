@@ -40,7 +40,7 @@ public interface IOutboxStorage
 /// Provides a way to store outgoing messages in a Redis stream.
 /// </summary>
 /// <remarks>
-/// Splitting this out from <see cref="IOutboxStorage"/> is a workaround to avoid creating two instances (one for the
+/// Splitting this out from <see cref="IOutboxStorage" /> is a workaround to avoid creating two instances (one for the
 /// decorator, one for the forwarder), each with their own dedicated blocking reader connection.
 /// </remarks>
 internal interface IOutboxQueueStorage

@@ -11,7 +11,7 @@ namespace Rebus.Redis.Outbox;
 public class OutboxMessage
 {
     /// <summary>
-    /// Creates a new <see cref="OutboxMessage"/> with the given <paramref name="id"/>
+    /// Creates a new <see cref="OutboxMessage" /> with the given <paramref name="id" />
     /// </summary>
     /// <param name="id">The (Redis streams) ID for this message.</param>
     public OutboxMessage(RedisValue id)
@@ -19,20 +19,23 @@ public class OutboxMessage
         Id = id;
     }
 
-    /// <summary>
-    /// Gets the <see cref="Headers"/> and <see cref="Body"/> wrapped in a <see cref="TransportMessage"/>
-    /// </summary>
-    public TransportMessage ToTransportMessage() => new(Headers, Body);
-
     /// <summary>The Redis streams ID for this message.</summary>
     public RedisValue Id { get; }
-    
+
     /// <summary>The destination address for this message.</summary>
     public string? DestinationAddress { get; set; }
-    
+
     /// <summary>The headers to be sent with the message.</summary>
     public Dictionary<string, string> Headers { get; } = new();
-    
-    /// <summary>The message body, serialized with the configured <see cref="ISerializer"/>.</summary>
-    public byte[]? Body { get; set; } 
+
+    /// <summary>The message body, serialized with the configured <see cref="ISerializer" />.</summary>
+    public byte[]? Body { get; set; }
+
+    /// <summary>
+    /// Gets the <see cref="Headers" /> and <see cref="Body" /> wrapped in a <see cref="TransportMessage" />
+    /// </summary>
+    public TransportMessage ToTransportMessage()
+    {
+        return new TransportMessage(Headers, Body);
+    }
 }

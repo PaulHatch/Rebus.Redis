@@ -18,7 +18,8 @@ public static class RedisOutboxConfigurationExtensions
 {
     /// <summary>
     /// Configures Rebus to use an outbox.
-    /// This will store a (message ID, source queue) tuple for all processed messages, and under this tuple any messages sent/published will
+    /// This will store a (message ID, source queue) tuple for all processed messages, and under this tuple any messages
+    /// sent/published will
     /// also be stored, thus enabling truly idempotent message processing.
     /// </summary>
     public static RebusConfigurer RedisOutbox(this RebusConfigurer configurer,
@@ -54,7 +55,7 @@ public static class RedisOutboxConfigurationExtensions
                 var outboxStorage = c.Get<IOutboxStorage>();
                 var transport = c.Get<ITransport>();
                 var config = c.Get<RedisOutboxConfiguration>();
-                
+
                 return new OutboxForwarder(
                     asyncTaskFactory,
                     rebusLoggerFactory,
@@ -109,14 +110,14 @@ public static class RedisOutboxConfigurationExtensions
                                  options.OptionalBusName.AddSuffix() ??
                                  throw new RebusConfigurationException(
                                      "Either an outbox name or a bus name must be specified");
-                
+
                 return new RedisOutboxStorage(
                     outboxName,
                     r.Get<RedisProvider>(),
                     config,
                     r.Get<IRebusLoggerFactory>());
-            },"Outbox Storage");
-        
+            }, "Outbox Storage");
+
         configurer.OtherService<IOutboxQueueStorage>()
             .Register(r =>
             {
@@ -126,10 +127,13 @@ public static class RedisOutboxConfigurationExtensions
                                  options.OptionalBusName.AddSuffix() ??
                                  throw new RebusConfigurationException(
                                      "Either an outbox name or a bus name must be specified");
-                
+
                 return new RedisOutboxQueueStorage(outboxName);
             });
     }
 
-    private static string? AddSuffix(this string? name) => name is null ? null : $"{name}-outbox";
+    private static string? AddSuffix(this string? name)
+    {
+        return name is null ? null : $"{name}-outbox";
+    }
 }

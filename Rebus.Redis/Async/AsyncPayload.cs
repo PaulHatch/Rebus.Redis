@@ -15,9 +15,9 @@ internal record AsyncPayload
     // The headers will be used for deserialization
     public static readonly HashSet<string> IncludedHeaders = new()
     {
-        Rebus.Messages.Headers.Type,
-        Rebus.Messages.Headers.ContentType,
-        Rebus.Messages.Headers.ContentEncoding
+        Messages.Headers.Type,
+        Messages.Headers.ContentType,
+        Messages.Headers.ContentEncoding
     };
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -42,9 +42,9 @@ internal record AsyncPayload
         var headers = message.Headers
             .Where(h => IncludedHeaders.Contains(h.Key))
             .ToDictionary(i => i.Key, i => i.Value);
-        
-        headers.Add(Rebus.Messages.Headers.MessageId, messageID);
-        
+
+        headers.Add(Messages.Headers.MessageId, messageID);
+
         Headers = headers;
         Body = Convert.ToBase64String(message.Body);
         ResponseType = ResponseType.Success;
@@ -55,7 +55,7 @@ internal record AsyncPayload
     {
         Headers = new Dictionary<string, string>
         {
-            {Rebus.Messages.Headers.MessageId, messageID}
+            {Messages.Headers.MessageId, messageID}
         };
         Body = errorMessage;
         ResponseType = ResponseType.Error;
@@ -66,25 +66,45 @@ internal record AsyncPayload
     {
         Headers = new Dictionary<string, string>
         {
-            {Rebus.Messages.Headers.MessageId, messageID}
+            {Messages.Headers.MessageId, messageID}
         };
         Body = string.Empty;
         ResponseType = ResponseType.Cancelled;
     }
 
-    public static AsyncPayload Success(string messageID, TransportMessage message) => new(messageID, message);
-    public static AsyncPayload Failed(string messageID, string errorMessage) => new(messageID, errorMessage);
-    public static AsyncPayload Cancelled(string messageID) => new(messageID);
-
-    [JsonIgnore] public string MessageID => Headers[Rebus.Messages.Headers.MessageId];
+    [JsonIgnore] public string MessageID => Headers[Messages.Headers.MessageId];
     public Dictionary<string, string> Headers { get; }
     public string Body { get; }
     public ResponseType ResponseType { get; }
 
-    public string ToJson() => JsonSerializer.Serialize(this, _jsonOptions);
-    public TransportMessage ToTransportMessage() => new(Headers, Convert.FromBase64String(Body));
+    public static AsyncPayload Success(string messageID, TransportMessage message)
+    {
+        return new AsyncPayload(messageID, message);
+    }
 
-    public static AsyncPayload FromJson(string json) =>
-        JsonSerializer.Deserialize<AsyncPayload>(json, _jsonOptions)
-        ?? throw new InvalidOperationException("Could not deserialize AsyncPayload");
+    public static AsyncPayload Failed(string messageID, string errorMessage)
+    {
+        return new AsyncPayload(messageID, errorMessage);
+    }
+
+    public static AsyncPayload Cancelled(string messageID)
+    {
+        return new AsyncPayload(messageID);
+    }
+
+    public string ToJson()
+    {
+        return JsonSerializer.Serialize(this, _jsonOptions);
+    }
+
+    public TransportMessage ToTransportMessage()
+    {
+        return new TransportMessage(Headers, Convert.FromBase64String(Body));
+    }
+
+    public static AsyncPayload FromJson(string json)
+    {
+        return JsonSerializer.Deserialize<AsyncPayload>(json, _jsonOptions)
+               ?? throw new InvalidOperationException("Could not deserialize AsyncPayload");
+    }
 }

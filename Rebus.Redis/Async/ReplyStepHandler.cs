@@ -6,7 +6,7 @@ using Rebus.Pipeline;
 namespace Rebus.Redis.Async;
 
 /// <summary>
-/// Step handler which allows replies to be sent via Redis pub/sub if they were called using the Redis async API. 
+/// Step handler which allows replies to be sent via Redis pub/sub if they were called using the Redis async API.
 /// </summary>
 internal class ReplyStepHandler : IOutgoingStep
 {

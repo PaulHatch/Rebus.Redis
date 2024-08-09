@@ -31,21 +31,24 @@ namespace Rebus.Redis;
 internal static class MurmurHash3
 {
     /// <summary>
-    /// Hashes the <paramref name="bytes"/> into a MurmurHash3 as a <see cref="uint"/>.
+    /// Hashes the <paramref name="bytes" /> into a MurmurHash3 as a <see cref="uint" />.
     /// </summary>
     /// <param name="bytes">The span.</param>
     /// <param name="seed">The seed for this algorithm.</param>
-    /// <returns>The MurmurHash3 as a <see cref="uint"/></returns>
+    /// <returns>The MurmurHash3 as a <see cref="uint" /></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Hash32(ref ReadOnlySpan<byte> bytes, uint seed)
     {
-        ref byte bp = ref MemoryMarshal.GetReference(bytes);
-        ref uint endPoint = ref Unsafe.Add(ref Unsafe.As<byte, uint>(ref bp), bytes.Length >> 2);
+        ref var bp = ref MemoryMarshal.GetReference(bytes);
+        ref var endPoint = ref Unsafe.Add(ref Unsafe.As<byte, uint>(ref bp), bytes.Length >> 2);
         if (bytes.Length >= 4)
         {
             do
             {
-                seed = RotateLeft(seed ^ RotateLeft(Unsafe.ReadUnaligned<uint>(ref bp) * 3432918353U, 15) * 461845907U, 13) * 5 - 430675100;
+                seed = RotateLeft(
+                           seed ^ (RotateLeft(Unsafe.ReadUnaligned<uint>(ref bp) * 3432918353U, 15) * 461845907U), 13) *
+                       5 -
+                       430675100;
                 bp = ref Unsafe.Add(ref bp, 4);
             } while (Unsafe.IsAddressLessThan(ref Unsafe.As<byte, uint>(ref bp), ref endPoint));
         }
@@ -69,15 +72,18 @@ internal static class MurmurHash3
             seed ^= RotateLeft(num * 3432918353U, 15) * 461845907U;
         }
 
-        seed ^= (uint)bytes.Length;
-        seed = (uint)((seed ^ (seed >> 16)) * -2048144789);
-        seed = (uint)((seed ^ (seed >> 13)) * -1028477387);
-        return seed ^ seed >> 16;
+        seed ^= (uint) bytes.Length;
+        seed = (uint) ((seed ^ (seed >> 16)) * -2048144789);
+        seed = (uint) ((seed ^ (seed >> 13)) * -1028477387);
+        return seed ^ (seed >> 16);
     }
-    
+
     // RotateLeft copied from .NET source 
     // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Numerics/BitOperations.cs
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RotateLeft(uint value, int offset) => (value << offset) | (value >> (32 - offset));
+    private static uint RotateLeft(uint value, int offset)
+    {
+        return (value << offset) | (value >> (32 - offset));
+    }
 }

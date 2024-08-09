@@ -13,14 +13,14 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
 {
     internal const string BodyKey = "body";
     internal const string AddressKey = "address";
+    private readonly RedisOutboxConfiguration _config;
+    private readonly RedisValue _consumerName;
+    private readonly IDatabaseAsync _database;
+    private readonly IConnectionMultiplexer? _dedicatedReaderConnection;
+    private readonly RedisValue _groupName;
+    private readonly ILog _log;
 
     private readonly RedisKey _outboxName;
-    private readonly IDatabaseAsync _database;
-    private readonly RedisValue _groupName;
-    private readonly RedisValue _consumerName;
-    private readonly ILog _log;
-    private readonly RedisOutboxConfiguration _config;
-    private readonly IConnectionMultiplexer? _dedicatedReaderConnection;
 
     public RedisOutboxStorage(
         string outboxName,
@@ -32,7 +32,7 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
         {
             var opts = ConfigurationOptions.Parse(redisProvider.Database.Multiplexer.Configuration);
             opts.ClientName = "rebus-redis-outbox";
-            opts.AsyncTimeout = Math.Max((int)(config.ForwardingInterval.TotalMilliseconds * 2), opts.AsyncTimeout);
+            opts.AsyncTimeout = Math.Max((int) (config.ForwardingInterval.TotalMilliseconds * 2), opts.AsyncTimeout);
             _dedicatedReaderConnection = ConnectionMultiplexer.Connect(opts.ToString());
         }
 
@@ -42,6 +42,24 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
         _consumerName = config.ConsumerName;
         _config = config;
         _log = loggerFactory.GetLogger<RedisOutboxStorage>();
+    }
+
+    public void Dispose()
+    {
+        _dedicatedReaderConnection?.Dispose();
+    }
+
+    public void Initialize()
+    {
+        try
+        {
+            _database.StreamCreateConsumerGroupAsync(_outboxName, _groupName, "0-0");
+            _log.Info("Created consumer group {GroupName} for {}", _groupName, _outboxName);
+        }
+        catch (RedisServerException)
+        {
+            // if the stream already exists, this will throw an exception, which we can safely ignore
+        }
     }
 
     public async Task TrimQueue()
@@ -108,6 +126,11 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
         return batch.Length == 0 ? null : MapBatch(batch);
     }
 
+    public Task MarkAsDispatched(OutboxMessage message)
+    {
+        return _database.StreamAcknowledgeAsync(_outboxName, _groupName, message.Id);
+    }
+
     private IEnumerable<OutboxMessage> MapBatch(StreamEntry[] batch)
     {
         foreach (var message in batch)
@@ -142,29 +165,6 @@ internal class RedisOutboxStorage : IOutboxStorage, IInitializable, IDisposable
             yield return outboxMessage;
         }
     }
-
-    public Task MarkAsDispatched(OutboxMessage message)
-    {
-        return _database.StreamAcknowledgeAsync(_outboxName, _groupName, message.Id);
-    }
-
-    public void Initialize()
-    {
-        try
-        {
-            _database.StreamCreateConsumerGroupAsync(_outboxName, _groupName, "0-0");
-            _log.Info("Created consumer group {GroupName} for {}", _groupName, _outboxName);
-        }
-        catch (RedisServerException)
-        {
-            // if the stream already exists, this will throw an exception, which we can safely ignore
-        }
-    }
-
-    public void Dispose()
-    {
-        _dedicatedReaderConnection?.Dispose();
-    }
 }
 
 internal class RedisOutboxQueueStorage : IOutboxQueueStorage
@@ -175,7 +175,7 @@ internal class RedisOutboxQueueStorage : IOutboxQueueStorage
     {
         _outboxName = outboxName;
     }
-    
+
     public Task Save(OutgoingTransportMessage message, RedisTransaction transaction)
     {
         var streamPairs = new NameValueEntry[message.TransportMessage.Headers.Count + 2];
@@ -189,7 +189,7 @@ internal class RedisOutboxQueueStorage : IOutboxQueueStorage
         }
 
         transaction.InTransaction(t => t.StreamAddAsync(_outboxName, streamPairs));
-        
+
         return Task.CompletedTask;
     }
 }

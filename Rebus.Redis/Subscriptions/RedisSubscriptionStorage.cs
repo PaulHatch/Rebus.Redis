@@ -55,5 +55,8 @@ public class RedisSubscriptionStorage : ISubscriptionStorage
     /// <inheritdoc />
     public bool IsCentralized { get; }
 
-    private RedisKey GetKey(string topic) => string.Concat(_prefix, topic);
+    private RedisKey GetKey(string topic)
+    {
+        return string.Concat(_prefix, topic);
+    }
 }

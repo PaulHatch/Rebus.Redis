@@ -8,9 +8,9 @@ namespace Rebus.Redis.Async;
 
 internal class ClientInitializer : IInitializable
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly ISerializer _objectSerializer;
     private readonly IRebusLoggerFactory _loggerFactory;
+    private readonly ISerializer _objectSerializer;
+    private readonly IConnectionMultiplexer _redis;
     private readonly CancellationToken _shutdownToken;
 
     public ClientInitializer(

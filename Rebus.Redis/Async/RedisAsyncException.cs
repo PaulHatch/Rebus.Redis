@@ -8,11 +8,6 @@ namespace Rebus.Redis.Async;
 public class RedisAsyncException : Exception
 {
     /// <summary>
-    /// Gets the ID of the message the exception was thrown for.
-    /// </summary>
-    public string MessageID { get; }
-
-    /// <summary>
     /// Creates a new async exception.
     /// </summary>
     /// <param name="message">The exception message.</param>
@@ -21,4 +16,9 @@ public class RedisAsyncException : Exception
     {
         MessageID = messageID;
     }
+
+    /// <summary>
+    /// Gets the ID of the message the exception was thrown for.
+    /// </summary>
+    public string MessageID { get; }
 }

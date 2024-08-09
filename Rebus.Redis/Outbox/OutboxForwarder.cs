@@ -10,13 +10,32 @@ namespace Rebus.Redis.Outbox;
 
 internal class OutboxForwarder : IDisposable, IInitializable
 {
-    private readonly CancellationTokenSource _cancellationTokenSource;
+    private static readonly RetryUtility _sendRetryUtility = new(new[]
+    {
+        TimeSpan.FromSeconds(0.1),
+        TimeSpan.FromSeconds(0.1),
+        TimeSpan.FromSeconds(0.1),
+        TimeSpan.FromSeconds(0.1),
+        TimeSpan.FromSeconds(0.1),
+        TimeSpan.FromSeconds(0.5),
+        TimeSpan.FromSeconds(0.5),
+        TimeSpan.FromSeconds(0.5),
+        TimeSpan.FromSeconds(0.5),
+        TimeSpan.FromSeconds(0.5),
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(1)
+    });
+
     private readonly CancellationToken _cancellationToken;
-    private readonly IOutboxStorage _outboxStorage;
-    private readonly ITransport _transport;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    private readonly IAsyncTask? _cleanup;
     private readonly IAsyncTask? _forwarder;
     private readonly IAsyncTask? _orphanedForwarder;
-    private readonly IAsyncTask? _cleanup;
+    private readonly IOutboxStorage _outboxStorage;
+    private readonly ITransport _transport;
 
 
     public OutboxForwarder(
@@ -40,7 +59,8 @@ internal class OutboxForwarder : IDisposable, IInitializable
 
         if (config.ForwardingEnabled)
         {
-            _forwarder = asyncTaskFactory.Create("Outbox Forwarder", config.UseBlockingRead ? RunBlockingForwarder : RunForwarder,
+            _forwarder = asyncTaskFactory.Create("Outbox Forwarder",
+                config.UseBlockingRead ? RunBlockingForwarder : RunForwarder,
                 intervalSeconds: config.UseBlockingRead ? 0 : (int) config.ForwardingInterval.TotalSeconds);
         }
         else
@@ -69,6 +89,23 @@ internal class OutboxForwarder : IDisposable, IInitializable
         }
     }
 
+    private bool IsRunning => !_cancellationToken.IsCancellationRequested;
+
+    public void Dispose()
+    {
+        _cancellationTokenSource.Cancel();
+        _forwarder?.Dispose();
+        _cleanup?.Dispose();
+        _orphanedForwarder?.Dispose();
+        _cancellationTokenSource.Dispose();
+    }
+
+    public void Initialize()
+    {
+        _forwarder?.Start();
+        _cleanup?.Start();
+    }
+
     private async Task RunBlockingForwarder()
     {
         while (IsRunning)
@@ -92,6 +129,7 @@ internal class OutboxForwarder : IDisposable, IInitializable
 
                 await _outboxStorage.MarkAsDispatched(message);
             }
+
             await scope.CompleteAsync();
         }
     }
@@ -101,14 +139,6 @@ internal class OutboxForwarder : IDisposable, IInitializable
         await _outboxStorage.CleanupIdleConsumers();
         await _outboxStorage.TrimQueue();
     }
-
-    public void Initialize()
-    {
-        _forwarder?.Start();
-        _cleanup?.Start();
-    }
-
-    private bool IsRunning => !_cancellationToken.IsCancellationRequested;
 
     private async Task RunForwarder()
     {
@@ -177,32 +207,4 @@ internal class OutboxForwarder : IDisposable, IInitializable
             await scope.CompleteAsync();
         } while (anySent && IsRunning);
     }
-
-    public void Dispose()
-    {
-        _cancellationTokenSource.Cancel();
-        _forwarder?.Dispose();
-        _cleanup?.Dispose();
-        _orphanedForwarder?.Dispose();
-        _cancellationTokenSource.Dispose();
-    }
-
-    private static readonly RetryUtility _sendRetryUtility = new(new[]
-    {
-        TimeSpan.FromSeconds(0.1),
-        TimeSpan.FromSeconds(0.1),
-        TimeSpan.FromSeconds(0.1),
-        TimeSpan.FromSeconds(0.1),
-        TimeSpan.FromSeconds(0.1),
-        TimeSpan.FromSeconds(0.5),
-        TimeSpan.FromSeconds(0.5),
-        TimeSpan.FromSeconds(0.5),
-        TimeSpan.FromSeconds(0.5),
-        TimeSpan.FromSeconds(0.5),
-        TimeSpan.FromSeconds(1),
-        TimeSpan.FromSeconds(1),
-        TimeSpan.FromSeconds(1),
-        TimeSpan.FromSeconds(1),
-        TimeSpan.FromSeconds(1),
-    });
 }

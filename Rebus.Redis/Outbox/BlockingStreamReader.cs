@@ -7,7 +7,6 @@ using StackExchange.Redis;
 
 namespace Rebus.Redis.Outbox;
 
-
 internal static class BlockingStreamReader
 {
     private const string _bodyKey = "body";
@@ -15,11 +14,11 @@ internal static class BlockingStreamReader
 
     public static async Task<List<OutboxMessage>?> BlockingGetMessages(
         this IDatabaseAsync db,
-        RedisKey key, 
-        RedisValue groupName, 
-        RedisValue consumerName, 
+        RedisKey key,
+        RedisValue groupName,
+        RedisValue consumerName,
         TimeSpan block,
-        int count, 
+        int count,
         CommandFlags flags = CommandFlags.None)
     {
         // ReSharper disable StringLiteralTypo
@@ -37,21 +36,21 @@ internal static class BlockingStreamReader
 
         var topic = (RedisResult[]) ((RedisResult[]) response)![0]!;
         var topicElements = (RedisResult[]) topic[1]!;
-        
+
         var result = new List<OutboxMessage>();
 
         foreach (RedisResult[]? element in topicElements)
         {
             var id = element![0].ToString();
             var values = element[1].ToDictionary();
-            
+
             var outboxMessage = new OutboxMessage(id);
             foreach (var value in values)
             {
                 switch (value.Key)
                 {
                     case _bodyKey:
-                        outboxMessage.Body = (byte[])value.Value!;
+                        outboxMessage.Body = (byte[]) value.Value!;
                         break;
                     case _addressKey:
                         outboxMessage.DestinationAddress = value.Value.ToString();
@@ -71,6 +70,7 @@ internal static class BlockingStreamReader
                         break;
                 }
             }
+
             result.Add(outboxMessage);
         }
 

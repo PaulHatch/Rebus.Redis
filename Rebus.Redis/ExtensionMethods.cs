@@ -32,11 +32,11 @@ internal static class ExtensionMethods
                 case UnicodeCategory.UppercaseLetter:
                 case UnicodeCategory.TitlecaseLetter:
                     if (previousCategory is UnicodeCategory.SpaceSeparator or UnicodeCategory.LowercaseLetter ||
-                        previousCategory != UnicodeCategory.DecimalDigitNumber &&
-                        previousCategory != null &&
-                        currentIndex > 0 &&
-                        currentIndex + 1 < name.Length &&
-                        char.IsLower(name[currentIndex + 1]))
+                        (previousCategory != UnicodeCategory.DecimalDigitNumber &&
+                         previousCategory != null &&
+                         currentIndex > 0 &&
+                         currentIndex + 1 < name.Length &&
+                         char.IsLower(name[currentIndex + 1])))
                     {
                         builder.Append('-');
                     }
