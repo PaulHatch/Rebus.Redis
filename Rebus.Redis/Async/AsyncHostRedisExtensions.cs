@@ -76,7 +76,7 @@ public static class AsyncHostRedisExtensions
     /// </summary>
     /// <param name="context">Context to reply to.</param>
     /// <param name="response">
-    /// Response to send. This value will be serialized and sent to to the pending task.
+    /// Response to send. This value will be serialized and sent to the pending task.
     /// </param>
     /// <typeparam name="TResponse">Response type to send.</typeparam>
     public static async Task RedisReplyAsync<TResponse>(this ReplyContext context, TResponse response)
@@ -124,7 +124,7 @@ public static class AsyncHostRedisExtensions
     /// </summary>
     /// <param name="context">Message context to reply to.</param>
     /// <param name="response">
-    /// Response to send. This value will be serialized and sent to to the pending task.
+    /// Response to send. This value will be serialized and sent to the pending task.
     /// </param>
     /// <typeparam name="TResponse">Response type to send.</typeparam>
     public static async Task RedisReplyAsync<TResponse>(this IMessageContext context, TResponse response)

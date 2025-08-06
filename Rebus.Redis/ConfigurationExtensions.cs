@@ -113,11 +113,6 @@ public static class ConfigurationExtensions
 
         foreach (var header in config.AdditionalHeaders)
         {
-            if (AsyncPayload.IncludedHeaders.Contains(header))
-            {
-                continue;
-            }
-
             AsyncPayload.IncludedHeaders.Add(header);
         }
     }

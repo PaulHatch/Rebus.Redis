@@ -10,8 +10,7 @@ namespace Rebus.Redis.Outbox;
 
 internal class OutboxForwarder : IDisposable, IInitializable
 {
-    private static readonly RetryUtility _sendRetryUtility = new(new[]
-    {
+    private static readonly RetryUtility _sendRetryUtility = new([
         TimeSpan.FromSeconds(0.1),
         TimeSpan.FromSeconds(0.1),
         TimeSpan.FromSeconds(0.1),
@@ -27,7 +26,7 @@ internal class OutboxForwarder : IDisposable, IInitializable
         TimeSpan.FromSeconds(1),
         TimeSpan.FromSeconds(1),
         TimeSpan.FromSeconds(1)
-    });
+    ]);
 
     private readonly CancellationToken _cancellationToken;
     private readonly CancellationTokenSource _cancellationTokenSource;

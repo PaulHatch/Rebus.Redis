@@ -11,7 +11,7 @@ namespace Rebus.Redis.Subscriptions;
 /// </summary>
 public class RedisSubscriptionStorage : ISubscriptionStorage
 {
-    private readonly IConnectionMultiplexer _connnection;
+    private readonly IConnectionMultiplexer _connection;
     private readonly string _prefix;
 
     /// <summary>
@@ -25,7 +25,7 @@ public class RedisSubscriptionStorage : ISubscriptionStorage
         string prefix,
         bool isCentralized)
     {
-        _connnection = connection;
+        _connection = connection;
         _prefix = prefix;
         IsCentralized = isCentralized;
     }
@@ -33,7 +33,7 @@ public class RedisSubscriptionStorage : ISubscriptionStorage
     /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetSubscriberAddresses(string topic)
     {
-        var db = _connnection.GetDatabase();
+        var db = _connection.GetDatabase();
         var members = await db.SetMembersAsync(GetKey(topic));
         return members.Select(m => m.ToString()).ToList();
     }
@@ -41,14 +41,14 @@ public class RedisSubscriptionStorage : ISubscriptionStorage
     /// <inheritdoc />
     public Task RegisterSubscriber(string topic, string subscriberAddress)
     {
-        var db = _connnection.GetDatabase();
+        var db = _connection.GetDatabase();
         return db.SetAddAsync(GetKey(topic), subscriberAddress);
     }
 
     /// <inheritdoc />
     public Task UnregisterSubscriber(string topic, string subscriberAddress)
     {
-        var db = _connnection.GetDatabase();
+        var db = _connection.GetDatabase();
         return db.SetRemoveAsync(GetKey(topic), subscriberAddress);
     }
 

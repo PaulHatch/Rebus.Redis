@@ -9,7 +9,7 @@ namespace Rebus.Redis;
 /// </summary>
 public class RebusRedisConfig
 {
-    internal HashSet<string> AdditionalHeaders { get; } = new();
+    internal HashSet<string> AdditionalHeaders { get; } = [];
     internal bool ClientAsyncEnabled { get; private set; }
     internal bool HostAsyncEnabled { get; private set; }
     internal Dictionary<string, string> AdditionalConnections { get; } = new();

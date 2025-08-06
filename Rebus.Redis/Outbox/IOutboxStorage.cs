@@ -46,7 +46,7 @@ public interface IOutboxStorage
 internal interface IOutboxQueueStorage
 {
     /// <summary>
-    /// Adds the specified message to the outgoing message stream (for the current Redis transaction.
+    /// Adds the specified message to the outgoing message stream (for the current Redis transaction).
     /// </summary>
     /// <param name="message">The message to add</param>
     /// <param name="transaction">The current Redis transaction</param>

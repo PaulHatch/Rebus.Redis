@@ -13,6 +13,7 @@ public static class SubscriptionConfig
     /// <summary>
     /// Configures Rebus to use Redis to store subscriptions.
     /// </summary>
+    /// <param name="configurer">Subscription storage configurer.</param>
     /// <param name="prefix">String to prefix all subscription keys with. Defaults to "rebus-subscription:".</param>
     /// <param name="isCentralized">True if the subscription storage is centralized. Defaults to false.</param>
     /// <param name="connectionString">

@@ -11,7 +11,7 @@ namespace Rebus.Redis;
 public class RedisTransaction
 {
     private readonly IDatabaseAsync _database;
-    private readonly List<Task> _tasks = new();
+    private readonly List<Task> _tasks = [];
     private readonly ITransaction? _transaction;
 
     /// <summary>
@@ -20,7 +20,7 @@ public class RedisTransaction
     /// <param name="multiplexer">The multiplexer for Redis.</param>
     public RedisTransaction(IConnectionMultiplexer multiplexer)
     {
-        _database = multiplexer?.GetDatabase() ?? throw new ArgumentNullException(nameof(multiplexer));
+        _database = multiplexer.GetDatabase() ?? throw new ArgumentNullException(nameof(multiplexer));
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ public class RedisTransaction
     /// <param name="transaction">The underlying Redis transaction.</param>
     public RedisTransaction(IConnectionMultiplexer multiplexer, ITransaction transaction)
     {
-        _database = multiplexer?.GetDatabase() ?? throw new ArgumentNullException(nameof(multiplexer));
+        _database = multiplexer.GetDatabase() ?? throw new ArgumentNullException(nameof(multiplexer));
         _transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
     }
 

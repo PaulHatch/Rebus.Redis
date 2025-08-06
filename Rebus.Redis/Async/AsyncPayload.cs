@@ -13,12 +13,12 @@ namespace Rebus.Redis.Async;
 internal record AsyncPayload
 {
     // The headers will be used for deserialization
-    public static readonly HashSet<string> IncludedHeaders = new()
-    {
+    public static readonly HashSet<string> IncludedHeaders =
+    [
         Messages.Headers.Type,
         Messages.Headers.ContentType,
         Messages.Headers.ContentEncoding
-    };
+    ];
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -27,8 +27,8 @@ internal record AsyncPayload
 
     [JsonConstructor]
     public AsyncPayload(
-        Dictionary<string, string>? headers = default,
-        string? body = default,
+        Dictionary<string, string>? headers = null,
+        string? body = null,
         ResponseType responseType = ResponseType.Success)
     {
         Headers = headers ?? new Dictionary<string, string>();

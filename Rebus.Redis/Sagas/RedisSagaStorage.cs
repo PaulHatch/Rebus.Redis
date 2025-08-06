@@ -167,7 +167,7 @@ internal class RedisSagaStorage : ISagaStorage
         if (indexKeys is not null)
         {
             var metadataFields = JsonSerializer.Deserialize<IEnumerable<IndexKey>>(indexKeys, _serializeOptions);
-            foreach (var metadataField in metadataFields ?? Enumerable.Empty<IndexKey>())
+            foreach (var metadataField in metadataFields ?? [])
             {
                 txn.InTransaction(t => t.HashDeleteAsync(metadataField.Key, metadataField.HashField));
             }

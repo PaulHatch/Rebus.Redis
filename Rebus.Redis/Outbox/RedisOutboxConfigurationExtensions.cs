@@ -89,7 +89,7 @@ public static class RedisOutboxConfigurationExtensions
     /// </summary>
     public static void StoreInRedis(
         this StandardConfigurer<IOutboxStorage> configurer,
-        Action<RedisOutboxConfiguration>? configure = default)
+        Action<RedisOutboxConfiguration>? configure = null)
     {
         if (configurer == null)
         {
