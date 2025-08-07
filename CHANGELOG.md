@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Redis subscription errors are now logged instead of crashing the application
 - Unknown response types now set the pending task to faulted state instead of silently returning
+- **CI/CD**: Updated GitHub Actions workflow to use build-once, promote-everywhere pattern
 
 ## [0.0.1] - Initial Release
 
