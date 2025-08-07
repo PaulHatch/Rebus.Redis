@@ -24,7 +24,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.format_version.outputs.version }}
+      preview_version: ${{ steps.format_version.outputs.preview_version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
       - name: Checkout
@@ -43,6 +44,30 @@ jobs:
           bump_each_commit: false
           search_commit_body: false
           user_format_type: "csv"
+      
+      - name: Format Versions
+        id: format_version
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.version }}
+          INCREMENT: ${{ steps.version.outputs.increment }}
+          MAJOR: ${{ steps.version.outputs.major }}
+          MINOR: ${{ steps.version.outputs.minor }}
+          PATCH: ${{ steps.version.outputs.patch }}
+        run: |
+          # Assembly version for .NET (4-part version)
+          ASSEMBLY_VERSION="${MAJOR}.${MINOR}.${PATCH}.${INCREMENT}"
+          echo "assembly_version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
+          
+          # Package versions
+          echo "version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          
+          # Preview version includes the increment as a preview suffix
+          PREVIEW_VERSION="${BASE_VERSION}-preview$(printf '%02d' $INCREMENT)"
+          echo "preview_version=$PREVIEW_VERSION" >> $GITHUB_OUTPUT
+          
+          echo "Assembly version: $ASSEMBLY_VERSION"
+          echo "Release version: $BASE_VERSION"
+          echo "Preview version: $PREVIEW_VERSION"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -53,26 +78,39 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build -c Release --no-restore
+        run: dotnet build -c Release --no-restore -p:Version=${{ steps.format_version.outputs.assembly_version }}
 
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal
 
       - name: Create NuGet Packages
+        env:
+          ASSEMBLY_VERSION: ${{ steps.format_version.outputs.assembly_version }}
+          RELEASE_VERSION: ${{ steps.format_version.outputs.version }}
+          PREVIEW_VERSION: ${{ steps.format_version.outputs.preview_version }}
         run: |
-          VERSION="${{ github.event.inputs.version_override || steps.version.outputs.version }}"
-          echo "Building packages with version: $VERSION"
-          dotnet pack -c Release -p:Version=$VERSION -p:PackageVersion=$VERSION --no-build --output ./artifacts
+          echo "Building release package with version: $RELEASE_VERSION (assembly: $ASSEMBLY_VERSION)"
+          dotnet pack -c Release -p:Version=$ASSEMBLY_VERSION -p:PackageVersion=$RELEASE_VERSION --no-build --output ./artifacts/release
+          
+          echo "Building preview package with version: $PREVIEW_VERSION (assembly: $ASSEMBLY_VERSION)"
+          dotnet pack -c Release -p:Version=$ASSEMBLY_VERSION -p:PackageVersion=$PREVIEW_VERSION --no-build --output ./artifacts/preview
         
-      - name: Upload Build Artifacts
+      - name: Upload Preview Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-packages
-          path: ./artifacts/*.nupkg
-          retention-days: 7
+          name: nuget-packages-preview
+          path: ./artifacts/preview/*.nupkg
+          retention-days: 14
+      
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-release
+          path: ./artifacts/release/*.nupkg
+          retention-days: 14
 
   deploy-preview:
-    name: Deploy to Preview
+    name: Deploy Preview (${{ needs.build.outputs.preview_version }})
     needs: build
     runs-on: ubuntu-latest
     environment: preview
@@ -80,7 +118,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: nuget-packages
+          name: nuget-packages-preview
           path: ./artifacts
 
       - name: Setup .NET
@@ -105,7 +143,7 @@ jobs:
           done
 
   deploy-release:
-    name: Deploy to Release
+    name: Deploy to NuGet (${{ needs.build.outputs.version }})
     needs: build
     runs-on: ubuntu-latest
     environment: release
@@ -118,7 +156,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: nuget-packages
+          name: nuget-packages-release
           path: ./artifacts
 
       - name: Setup .NET
