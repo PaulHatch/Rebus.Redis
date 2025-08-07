@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Rebus.Bus;
@@ -17,6 +19,7 @@ namespace Rebus.Redis.Async;
 public static class AsyncClientRedisExtensions
 {
     private static bool _isInitialized;
+    private static readonly object _initializationLock = new object();
 
     private static readonly ConcurrentDictionary<string, (TaskCompletionSource<object?> tcs, Type? type)> _messages =
         new();
@@ -31,80 +34,130 @@ public static class AsyncClientRedisExtensions
         IRebusLoggerFactory loggerFactory,
         CancellationToken shutdownToken)
     {
-        if (_isInitialized)
+        lock (_initializationLock)
         {
-            throw new InvalidOperationException("The listener has already been initialized.");
-        }
-
-        var db = redis.GetDatabase();
-        do
-        {
-            // This is really overkill...
-            var subscriberID = Guid.NewGuid().ToString();
-            var result = db.Execute("PUBSUB", "CHANNELS", subscriberID);
-            if (!result.IsNull)
+            if (_isInitialized)
             {
-                _subscriberID = subscriberID;
+                throw new InvalidOperationException("The listener has already been initialized.");
             }
-        } while (_subscriberID is null);
 
-        _isInitialized = true;
-        _serializer = serializer;
-        // AsyncClientRedisExtensions is static, so we can't use the logger factory directly on this class
-        _log = loggerFactory.GetLogger<ReplyContext>();
-        var subscriber = redis.GetSubscriber();
-        subscriber.Subscribe(RedisChannel.Literal(_subscriberID), HandleResponseMessage);
+            var db = redis.GetDatabase();
+            do
+            {
+                // This is really overkill...
+                var subscriberID = Guid.NewGuid().ToString();
+                var result = db.Execute("PUBSUB", "CHANNELS", subscriberID);
+                if (!result.IsNull)
+                {
+                    _subscriberID = subscriberID;
+                }
+            } while (_subscriberID is null);
 
-        shutdownToken.Register(() =>
-        {
-            _log?.Info("Shutting down Redis listener");
-            subscriber.UnsubscribeAll();
-        });
+            _isInitialized = true;
+            _serializer = serializer;
+            // AsyncClientRedisExtensions is static, so we can't use the logger factory directly on this class
+            _log = loggerFactory.GetLogger<ReplyContext>();
+            var subscriber = redis.GetSubscriber();
+            subscriber.Subscribe(RedisChannel.Literal(_subscriberID), HandleResponseMessage);
+
+            shutdownToken.Register(() =>
+            {
+                _log?.Info("Shutting down Redis listener");
+                subscriber.UnsubscribeAll();
+            });
+        }
     }
 
     private static async void HandleResponseMessage(RedisChannel channel, RedisValue value)
     {
-        if (_serializer is null)
+        string? messageId = null;
+
+        try
         {
-            throw new /*Unreachable*/Exception("No serializer has been registered.");
-        }
-
-        if (value.IsNull)
-        {
-            throw new ArgumentNullException(nameof(value), "A null value was received from Redis.");
-        }
-
-        var payload = AsyncPayload.FromJson(value!);
-
-        if (!_messages.TryRemove(payload.MessageID, out var pendingTask))
-        {
-            _log?.Warn("Received a reply for {messageId} but no pending task was found for that ID.",
-                payload.MessageID);
-            return;
-        }
-
-        switch (payload.ResponseType)
-        {
-            case ResponseType.Error:
-                pendingTask.tcs.SetException(new RedisAsyncException(payload.Body, payload.MessageID));
-                break;
-            case ResponseType.Success:
-                if (payload.Body.Length > 0)
-                {
-                    var message = await _serializer.Deserialize(payload.ToTransportMessage());
-                    pendingTask.tcs.SetResult(message.Body);
-                }
-                else
-                {
-                    pendingTask.tcs.SetResult(null!);
-                }
-
-                break;
-            case ResponseType.Cancelled:
-                pendingTask.tcs.SetCanceled();
-                break;
-            default:
+            if (value.IsNull)
+            {
+                _log?.Error("A null value was received from Redis on channel {channel}", channel);
+                // We can't deserialize the payload to get the message ID, so we can't notify any specific task
+                // This is likely a Redis corruption or protocol issue
                 return;
+            }
+
+            AsyncPayload payload;
+            try
+            {
+                payload = AsyncPayload.FromJson(value!);
+                messageId = payload.MessageID;
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(ex, "Failed to deserialize AsyncPayload from Redis value on channel {channel}", channel);
+                return;
+            }
+
+            if (!_messages.TryRemove(payload.MessageID, out var pendingTask))
+            {
+                _log?.Warn("Received a reply for {messageId} but no pending task was found for that ID.",
+                    payload.MessageID);
+                return;
+            }
+
+            switch (payload.ResponseType)
+            {
+                case ResponseType.Error:
+                    pendingTask.tcs.SetException(new RedisAsyncException(payload.Body, payload.MessageID));
+                    break;
+
+                case ResponseType.Success:
+                    if (payload.Body.Length > 0)
+                    {
+                        try
+                        {
+                            if (_serializer == null)
+                            {
+                                pendingTask.tcs.SetException(
+                                    new RedisAsyncException(
+                                        "HandleResponseMessage called but no serializer has been registered. Ensure RegisterListener was called during initialization.",
+                                        payload.MessageID)
+                                );
+                                return;
+                            }
+
+                            var message = await _serializer.Deserialize(payload.ToTransportMessage());
+                            pendingTask.tcs.SetResult(message.Body);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log?.Error(ex, "Failed to deserialize response for message {messageId}",
+                                payload.MessageID);
+                            pendingTask.tcs.SetException(new RedisAsyncException(
+                                $"Failed to deserialize response: {ex.Message}",
+                                payload.MessageID,
+                                ex));
+                        }
+                    }
+                    else
+                    {
+                        pendingTask.tcs.SetResult(null!);
+                    }
+
+                    break;
+
+                case ResponseType.Cancelled:
+                    pendingTask.tcs.SetCanceled();
+                    break;
+
+                default:
+                    _log?.Warn("Unknown response type {responseType} for message {messageId}",
+                        payload.ResponseType, payload.MessageID);
+                    pendingTask.tcs.SetException(
+                        new RedisAsyncException($"Unknown response type: {payload.ResponseType}", payload.MessageID));
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log?.Error(ex, "Unhandled exception in HandleResponseMessage for channel {channel}, messageId {messageId}",
+                channel, messageId ?? "unknown");
         }
     }
 
@@ -127,7 +180,7 @@ public static class AsyncClientRedisExtensions
     /// An external cancellation token from some outer context that cancels waiting for
     /// a reply
     /// </param>
-    /// <returns></returns>
+    /// <returns>The reply message of type <typeparamref name="TReply" /></returns>
     public static async Task<TReply> SendRequest<TReply>(
         this IBus bus,
         object request,
@@ -178,15 +231,15 @@ public static class AsyncClientRedisExtensions
 
         if (!_messages.TryAdd(messageID, (taskCompletionSource, typeof(TReply))))
         {
-            throw new /*Unreachable*/Exception(
+            throw new UnreachableException(
                 $"Could not add response ID {messageID} to the dictionary of pending messages.");
         }
 
         var headers = optionalHeaders ?? new Dictionary<string, string>();
-        headers[AsyncHeaders.Timeout] = maxWaitTime.Milliseconds.ToString();
+        headers[AsyncHeaders.Timeout] = maxWaitTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
         headers[Headers.MessageId] = string.Concat(
             AsyncHeaders.MessageIDPrefix,
-            _subscriberID ?? throw new /*Unreachable*/Exception("Subscriber ID is null"),
+            _subscriberID ?? throw new UnreachableException("Subscriber ID is null"),
             ":",
             messageID);
 
