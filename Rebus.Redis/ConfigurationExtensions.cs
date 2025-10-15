@@ -12,11 +12,15 @@ using StackExchange.Redis;
 
 namespace Rebus.Redis;
 
-/// <summary>
-/// Configuration helper for adding Redis support.
-/// </summary>
+/// <summary>Configuration helper for adding Redis support.</summary>
 public static class ConfigurationExtensions
 {
+    /// <summary>
+    /// Configures Rebus to use Redis for asynchronous request-reply messaging, enabling distributed communication across service boundaries.
+    /// </summary>
+    /// <param name="configurer">The Rebus options configurer to extend with Redis support.</param>
+    /// <param name="connectionString">The Redis connection string for establishing connections to the Redis server.</param>
+    /// <param name="configure">Optional configuration delegate to customize Redis-specific settings such as async modes and additional connections.</param>
     public static void EnableRedis(
         this OptionsConfigurer configurer,
         string connectionString,

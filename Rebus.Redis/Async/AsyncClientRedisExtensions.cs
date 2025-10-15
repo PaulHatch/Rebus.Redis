@@ -19,6 +19,7 @@ namespace Rebus.Redis.Async;
 public static class AsyncClientRedisExtensions
 {
     private static bool _isInitialized;
+    private static int _referenceCount;
     private static readonly object _initializationLock = new object();
 
     private static readonly ConcurrentDictionary<string, (TaskCompletionSource<object?> tcs, Type? type)> _messages =
@@ -27,6 +28,7 @@ public static class AsyncClientRedisExtensions
     private static string? _subscriberID;
     private static ISerializer? _serializer;
     private static ILog? _log;
+    private static ISubscriber? _subscriber;
 
     internal static void RegisterListener(
         IConnectionMultiplexer redis,
@@ -38,7 +40,9 @@ public static class AsyncClientRedisExtensions
         {
             if (_isInitialized)
             {
-                throw new InvalidOperationException("The listener has already been initialized.");
+                _referenceCount++;
+                shutdownToken.Register(UnregisterListener);
+                return;
             }
 
             var db = redis.GetDatabase();
@@ -54,17 +58,32 @@ public static class AsyncClientRedisExtensions
             } while (_subscriberID is null);
 
             _isInitialized = true;
+            _referenceCount = 1;
             _serializer = serializer;
-            // AsyncClientRedisExtensions is static, so we can't use the logger factory directly on this class
             _log = loggerFactory.GetLogger<ReplyContext>();
-            var subscriber = redis.GetSubscriber();
-            subscriber.Subscribe(RedisChannel.Literal(_subscriberID), HandleResponseMessage);
+            _subscriber = redis.GetSubscriber();
+            _subscriber.Subscribe(RedisChannel.Literal(_subscriberID), HandleResponseMessage);
 
-            shutdownToken.Register(() =>
+            shutdownToken.Register(UnregisterListener);
+        }
+    }
+
+    private static void UnregisterListener()
+    {
+        lock (_initializationLock)
+        {
+            _referenceCount--;
+            if (_referenceCount <= 0)
             {
-                _log?.Info("Shutting down Redis listener");
-                subscriber.UnsubscribeAll();
-            });
+                _log?.Info("Shutting down Redis listener (all buses disposed)");
+                _subscriber?.UnsubscribeAll();
+                _isInitialized = false;
+                _referenceCount = 0;
+                _subscriberID = null;
+                _serializer = null;
+                _log = null;
+                _subscriber = null;
+            }
         }
     }
 
